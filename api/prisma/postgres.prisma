@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/postgres-client"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("VECTOR_DATABASE_URL")
+}
+
+model VectorRecord {
+  id        String   @id @default(uuid())
+  tenantId  String
+  content   String   @db.Text
+  embedding Unsupported("vector(1536)")?
+  refId     String?
+  refType   String?  // 'ASSET' | 'CHARACTER'
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}

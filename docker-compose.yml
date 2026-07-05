@@ -1,0 +1,28 @@
+services:
+  visual-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: pitayavisual-api
+    restart: always
+    env_file:
+      - ./api/.env.prod
+    ports:
+      - "3016:3016"
+    networks:
+      - pitaya_net
+
+  visual-web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: pitayavisual-web
+    restart: always
+    ports:
+      - "5174:80"
+    networks:
+      - pitaya_net
+
+networks:
+  pitaya_net:
+    external: true

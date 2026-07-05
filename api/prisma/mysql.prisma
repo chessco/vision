@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/mysql-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id             String         @id @default(uuid())
+  slug           String?        @unique
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  characters     Character[]
+  campaigns      Campaign[]
+  assets         Asset[]
+  brandConfig    BrandConfig?
+  users          User[]
+  chatSessions   ChatSession[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  email     String   @unique
+  role      String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Character {
+  id           String    @id @default(uuid())
+  tenantId     String
+  name         String
+  type         String    @default("AI Influencer")
+  industry     String?
+  vertical     String    @default("General")
+  physicalDescription String? @db.Text
+  personality  String?   @db.Text
+  mission      String?   @db.Text
+  avatarUrl    String?   @db.LongText
+  referenceImages Json?
+  status       String    @default("DRAFT") // DRAFT, TRAINING, ACTIVE, ARCHIVED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  campaigns    Campaign[]
+  assets       Asset[]
+
+  @@index([tenantId])
+}
+
+model BrandConfig {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  logoUrl         String?  @db.Text
+  primaryColor    String?
+  secondaryColor  String?
+  fontHeadings    String?
+  fontBody        String?
+  styleGuidelines String?  @db.Text
+  toneOfVoice     String?
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model Campaign {
+  id          String     @id @default(uuid())
+  tenantId    String
+  name        String
+  objective   String?    @db.Text
+  audience    String?    @db.Text
+  characterId String?
+  channels    Json?
+  formats     Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  character   Character? @relation(fields: [characterId], references: [id])
+  assets      Asset[]
+
+  @@index([tenantId])
+  @@index([characterId])
+}
+
+model Asset {
+  id          String     @id @default(uuid())
+  tenantId    String
+  campaignId  String?
+  characterId String?
+  type        String     // IMAGE, VIDEO, STORYBOARD, COPY
+  title       String?
+  url         String?    @db.Text
+  dimensions  String?
+  sizeBytes   Int?
+  prompt      String?    @db.Text
+  status      String     @default("Generating")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  campaign    Campaign?  @relation(fields: [campaignId], references: [id])
+  character   Character? @relation(fields: [characterId], references: [id])
+
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([characterId])
+}
+
+
+
+model ChatSession {
+  id         String        @id @default(uuid())
+  tenantId   String
+  title      String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  messages   ChatMessage[]
+  campaignId String?       // Optional association with a campaign
+  
+  @@index([tenantId])
+}
+
+model ChatMessage {
+  id            String      @id @default(uuid())
+  sessionId     String
+  sender        String      // 'user' | 'ai'
+  text          String      @db.Text
+  steps         Json?       // To store progress steps: [{ label: string, status: 'done'|'running'|'pending' }]
+  suggestedCopy String?     @db.Text
+  imagePrompt   String?     @db.Text  // English prompt used for image generation
+  bannerTitle   String?
+  bannerStyle   String?
+  bannerUrl     String?     @db.Text
+  technicalDetails Json?    // To store { dimensions, format, sizeBytes }
+  createdAt     DateTime    @default(now())
+  session       ChatSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+}
+
