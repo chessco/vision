@@ -9,6 +9,7 @@ import { PageHeader, GlassPanel, StatusBadge, EmptyState, LoadingSpinner } from 
 import { toApiTenantId } from '../../../lib/api';
 import type { Character } from '../../../types';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export function CharactersPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -16,6 +17,7 @@ export function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchCharacters = async () => {
@@ -32,7 +34,7 @@ export function CharactersPage() {
     fetchCharacters();
   }, [apiTenantId]);
 
-  if (loading) return <LoadingSpinner label="Loading Character Studio..." fullPage />;
+  if (loading) return <LoadingSpinner label={t('Loading Character Studio...')} fullPage />;
 
   const selected = characters.find(c => c.id === selectedId);
 
@@ -40,12 +42,12 @@ export function CharactersPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in flex flex-col h-full">
       <PageHeader
         icon={UserCircle}
-        title="Character Studio"
-        description="Create, train, and manage AI personas to interact with your audience and generate consistent content."
+        title={t('Character Studio')}
+        description={t('Create, train, and manage AI personas to interact with your audience and generate consistent content.')}
         actions={
           <button className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all text-sm">
             <Plus className="w-4 h-4" />
-            New Character
+            {t('New Character')}
           </button>
         }
       />
@@ -54,9 +56,9 @@ export function CharactersPage() {
         <GlassPanel className="p-12">
           <EmptyState
             icon={UserCircle}
-            title="No Characters Yet"
-            description="Create your first AI character to start automating your brand communication."
-            action={{ label: 'Create Character', onClick: () => {} }}
+            title={t('No Characters Yet')}
+            description={t('Create your first AI character to start automating your brand communication.')}
+            action={{ label: t('Create Character'), onClick: () => {} }}
           />
         </GlassPanel>
       ) : (
@@ -110,7 +112,7 @@ export function CharactersPage() {
                 <div className="absolute top-4 right-4 flex gap-2">
                   <button className="p-2 rounded-lg bg-black/40 text-white hover:bg-black/60 backdrop-blur-md transition-colors"><Settings className="w-4 h-4" /></button>
                   <button className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" /> Chat
+                    <MessageSquare className="w-4 h-4" /> {t('Chat')}
                   </button>
                 </div>
               </div>
@@ -119,33 +121,33 @@ export function CharactersPage() {
                 {/* Core Config */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider mb-2">Personality</h3>
+                    <h3 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider mb-2">{t('Personality')}</h3>
                     <p className="text-sm text-white leading-relaxed">{selected.personality}</p>
                   </div>
                   <div>
-                    <h3 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider mb-2">Mission</h3>
+                    <h3 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider mb-2">{t('Mission')}</h3>
                     <p className="text-sm text-white leading-relaxed">{selected.mission}</p>
                   </div>
                 </div>
 
                 {/* Performance Stats */}
                 <div>
-                  <h3 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider mb-3">Performance</h3>
+                  <h3 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('Performance')}</h3>
                   <div className="grid grid-cols-4 gap-4">
                     <div className="p-4 rounded-xl bg-white/3 border border-white/5">
-                      <p className="text-[10px] text-ink-muted uppercase">Interactions</p>
+                      <p className="text-[10px] text-ink-muted uppercase">{t('Interactions')}</p>
                       <p className="text-xl font-headings font-bold text-white mt-1">1,248</p>
                     </div>
                     <div className="p-4 rounded-xl bg-white/3 border border-white/5">
-                      <p className="text-[10px] text-ink-muted uppercase">Engagement</p>
+                      <p className="text-[10px] text-ink-muted uppercase">{t('Engagement')}</p>
                       <p className="text-xl font-headings font-bold text-emerald-400 mt-1">8.4%</p>
                     </div>
                     <div className="p-4 rounded-xl bg-white/3 border border-white/5">
-                      <p className="text-[10px] text-ink-muted uppercase">Accuracy</p>
+                      <p className="text-[10px] text-ink-muted uppercase">{t('Accuracy')}</p>
                       <p className="text-xl font-headings font-bold text-white mt-1">96%</p>
                     </div>
                     <div className="p-4 rounded-xl bg-white/3 border border-white/5">
-                      <p className="text-[10px] text-ink-muted uppercase">Status</p>
+                      <p className="text-[10px] text-ink-muted uppercase">{t('Status')}</p>
                       <div className="mt-1"><StatusBadge status={selected.status} /></div>
                     </div>
                   </div>
@@ -156,19 +158,19 @@ export function CharactersPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-ink-muted">
                       <Brain className="w-4 h-4" />
-                      <h3 className="text-xs font-labels font-semibold uppercase tracking-wider">Memory & Knowledge</h3>
+                      <h3 className="text-xs font-labels font-semibold uppercase tracking-wider">{t('Memory & Knowledge')}</h3>
                     </div>
                     <div className="p-4 rounded-xl bg-white/3 border border-white/5 space-y-2 text-sm text-white">
-                      <div className="flex justify-between items-center"><span className="text-ink-muted">Brand Guidelines</span><span className="text-emerald-400 text-xs">Active</span></div>
-                      <div className="flex justify-between items-center"><span className="text-ink-muted">Product Catalog</span><span className="text-emerald-400 text-xs">Active</span></div>
-                      <div className="flex justify-between items-center"><span className="text-ink-muted">Past Interactions</span><span className="text-emerald-400 text-xs">Learning</span></div>
+                      <div className="flex justify-between items-center"><span className="text-ink-muted">{t('Brand Guidelines')}</span><span className="text-emerald-400 text-xs">{t('Active')}</span></div>
+                      <div className="flex justify-between items-center"><span className="text-ink-muted">{t('Product Catalog')}</span><span className="text-emerald-400 text-xs">{t('Active')}</span></div>
+                      <div className="flex justify-between items-center"><span className="text-ink-muted">{t('Past Interactions')}</span><span className="text-emerald-400 text-xs">{t('Learning')}</span></div>
                     </div>
                   </div>
                   
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-ink-muted">
                       <ImageIcon className="w-4 h-4" />
-                      <h3 className="text-xs font-labels font-semibold uppercase tracking-wider">Reference Visuals</h3>
+                      <h3 className="text-xs font-labels font-semibold uppercase tracking-wider">{t('Reference Visuals')}</h3>
                     </div>
                     {selected.referenceImages && selected.referenceImages.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2">
@@ -180,7 +182,7 @@ export function CharactersPage() {
                       </div>
                     ) : (
                       <div className="h-full min-h-[100px] rounded-xl border border-dashed border-white/10 flex items-center justify-center text-xs text-ink-muted">
-                        No reference images
+                        {t('No reference images')}
                       </div>
                     )}
                   </div>

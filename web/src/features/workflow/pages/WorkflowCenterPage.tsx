@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toApiTenantId } from '../../../utils/tenant';
+import { useTranslation } from 'react-i18next';
 
 interface SocialPost {
   id: string;
@@ -21,6 +22,7 @@ interface Asset {
 }
 
 export function WorkflowCenterPage() {
+  const { t } = useTranslation();
   const { tenantId } = useParams<{ tenantId: string }>();
   const apiTenantId = toApiTenantId(tenantId!);
   const [posts, setPosts] = useState<SocialPost[]>([]);
@@ -77,7 +79,7 @@ export function WorkflowCenterPage() {
       fetchPosts();
     } catch (err) {
       console.error('Error scheduling post', err);
-      alert('Error al agendar la publicación');
+      alert(t('Error al agendar la publicación'));
     }
   };
 
@@ -96,26 +98,26 @@ export function WorkflowCenterPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-4xl font-display font-light tracking-wide text-ink-text mb-2">
-            Workflow Center
+            {t('Workflow Center')}
           </h1>
           <p className="text-ink-subtle">
-            Agenda tus assets visuales para publicación automática
+            {t('Agenda tus assets visuales para publicación automática')}
           </p>
         </div>
         <button 
           onClick={() => setIsFormOpen(true)}
           className="bg-primary hover:bg-secondary text-background font-medium py-2 px-6 rounded-full transition-colors"
         >
-          + Nueva Publicación
+          + {t('Nueva Publicación')}
         </button>
       </div>
 
       {isFormOpen && (
         <div className="bg-paper-surface border border-border-subtle p-6 rounded-xl mb-8">
-          <h2 className="text-2xl font-display mb-4 text-ink-text">Programar Post</h2>
+          <h2 className="text-2xl font-display mb-4 text-ink-text">{t('Programar Post')}</h2>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-ink-subtle mb-1">Red Social</label>
+              <label className="block text-sm font-medium text-ink-subtle mb-1">{t('Red Social')}</label>
               <select 
                 value={platform} 
                 onChange={(e) => setPlatform(e.target.value)}
@@ -127,14 +129,14 @@ export function WorkflowCenterPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-ink-subtle mb-1">Asset Visual</label>
+              <label className="block text-sm font-medium text-ink-subtle mb-1">{t('Asset Visual')}</label>
               <select 
                 value={selectedAsset} 
                 onChange={(e) => setSelectedAsset(e.target.value)}
                 className="w-full bg-background border border-border-subtle rounded-md p-2 text-ink-text"
                 required
               >
-                <option value="" disabled>Selecciona un asset generado...</option>
+                <option value="" disabled>{t('Selecciona un asset generado...')}</option>
                 {assets.map(a => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
@@ -142,18 +144,18 @@ export function WorkflowCenterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-ink-subtle mb-1">Copy / Contenido</label>
+              <label className="block text-sm font-medium text-ink-subtle mb-1">{t('Copy / Contenido')}</label>
               <textarea 
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="w-full bg-background border border-border-subtle rounded-md p-2 text-ink-text min-h-[100px]"
-                placeholder="Escribe el texto de tu publicación..."
+                placeholder={t('Escribe el texto de tu publicación...')}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-ink-subtle mb-1">Fecha y Hora (Opcional - dejar vacío para DRAFT)</label>
+              <label className="block text-sm font-medium text-ink-subtle mb-1">{t('Fecha y Hora (Opcional - dejar vacío para DRAFT)')}</label>
               <input 
                 type="datetime-local" 
                 value={scheduledAt}
@@ -164,10 +166,10 @@ export function WorkflowCenterPage() {
 
             <div className="flex gap-4 mt-4">
               <button type="submit" className="bg-primary hover:bg-secondary text-background font-medium py-2 px-6 rounded-md transition-colors flex-1">
-                Agendar / Guardar
+                {t('Agendar / Guardar')}
               </button>
               <button type="button" onClick={() => setIsFormOpen(false)} className="bg-transparent border border-border-subtle text-ink-subtle hover:text-ink-text py-2 px-6 rounded-md flex-1">
-                Cancelar
+                {t('Cancelar')}
               </button>
             </div>
           </form>
@@ -178,7 +180,7 @@ export function WorkflowCenterPage() {
         {posts.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-ink-subtle">
             <span className="text-4xl mb-4">📅</span>
-            <p>No tienes publicaciones programadas.</p>
+            <p>{t('No tienes publicaciones programadas.')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -211,7 +213,7 @@ export function WorkflowCenterPage() {
                 )}
 
                 <div className="text-xs text-ink-subtle pt-3 border-t border-border-subtle mt-auto">
-                  {post.scheduledAt ? `📅 ${new Date(post.scheduledAt).toLocaleString()}` : 'No agendado'}
+                  {post.scheduledAt ? `📅 ${new Date(post.scheduledAt).toLocaleString()}` : t('No agendado')}
                 </div>
               </div>
             ))}

@@ -6,19 +6,21 @@ import { TrendingUp, Hash, Eye, Globe, Gauge, ArrowUpRight, ArrowRight, Minus } 
 import { PageHeader, GlassPanel, TabBar } from '../../../components/ui';
 import { MOCK_TREND_TOPICS } from '../../../lib/api';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 type TrendTab = 'topics' | 'hashtags' | 'competitors' | 'industry' | 'regional';
 
 export function TrendStudioPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TrendTab>('topics');
   const trends = MOCK_TREND_TOPICS;
 
   const tabs = [
-    { id: 'topics', label: 'Trending Topics', icon: TrendingUp },
-    { id: 'hashtags', label: 'Hashtags', icon: Hash },
-    { id: 'competitors', label: 'Competitors', icon: Eye },
-    { id: 'industry', label: 'Industry', icon: Globe },
-    { id: 'regional', label: 'Regional', icon: Globe },
+    { id: 'topics', label: t('Trending Topics'), icon: TrendingUp },
+    { id: 'hashtags', label: t('Hashtags'), icon: Hash },
+    { id: 'competitors', label: t('Competitors'), icon: Eye },
+    { id: 'industry', label: t('Industry'), icon: Globe },
+    { id: 'regional', label: t('Regional'), icon: Globe },
   ];
 
   const velocityIcon = (v: string) => v === 'rising' ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" /> : v === 'declining' ? <ArrowRight className="w-3.5 h-3.5 text-red-400 rotate-45" /> : <Minus className="w-3.5 h-3.5 text-ink-muted" />;
@@ -28,8 +30,8 @@ export function TrendStudioPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6 animate-fade-in">
       <PageHeader
         icon={TrendingUp}
-        title="Trend Studio"
-        description="Monitor trending topics, hashtags, and competitor activity to stay ahead of the curve."
+        title={t('Trend Studio')}
+        description={t('Monitor trending topics, hashtags, and competitor activity to stay ahead of the curve.')}
       />
 
       <TabBar tabs={tabs} activeTab={activeTab} onChange={(id) => setActiveTab(id as TrendTab)} />
@@ -59,7 +61,7 @@ export function TrendStudioPage() {
                 <div className="text-right shrink-0">
                   <div className="flex items-center gap-1">
                     <Gauge className="w-4 h-4 text-ink-muted" />
-                    <span className="text-xs text-ink-muted">Opportunity</span>
+                    <span className="text-xs text-ink-muted">{t('Opportunity')}</span>
                   </div>
                   <span className={clsx(
                     'text-xl font-headings font-bold',
@@ -72,7 +74,7 @@ export function TrendStudioPage() {
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-ink-muted border border-white/5 shrink-0">{trend.category}</span>
                 )}
                 <button className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors shrink-0 flex items-center gap-1">
-                  Create <ArrowUpRight className="w-3 h-3" />
+                  {t('Create')} <ArrowUpRight className="w-3 h-3" />
                 </button>
               </div>
             </GlassPanel>
@@ -83,7 +85,7 @@ export function TrendStudioPage() {
       {activeTab === 'hashtags' && (
         <div className="space-y-4 stagger-children">
           <GlassPanel className="p-6">
-            <h3 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider mb-4">Trending Hashtags</h3>
+            <h3 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider mb-4">{t('Trending Hashtags')}</h3>
             <div className="flex flex-wrap gap-2">
               {trends.flatMap(t => t.hashtags).map((tag, i) => (
                 <button key={`${tag}-${i}`} className={clsx(
@@ -100,9 +102,9 @@ export function TrendStudioPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {[
-              { label: 'Most Used Today', tags: ['#AIMarketing', '#ContentCreation', '#SocialMedia'], color: 'primary' },
-              { label: 'Rising Fast', tags: ['#LegalTech', '#BlueEconomy', '#Sustainability'], color: 'emerald' },
-              { label: 'Your Best Performers', tags: ['#MarTech', '#GreenBusiness', '#Reels'], color: 'amber' },
+              { label: t('Most Used Today'), tags: ['#AIMarketing', '#ContentCreation', '#SocialMedia'], color: 'primary' },
+              { label: t('Rising Fast'), tags: ['#LegalTech', '#BlueEconomy', '#Sustainability'], color: 'emerald' },
+              { label: t('Your Best Performers'), tags: ['#MarTech', '#GreenBusiness', '#Reels'], color: 'amber' },
             ].map((group, i) => (
               <GlassPanel key={i} className="p-5 space-y-3">
                 <h4 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">{group.label}</h4>
@@ -137,9 +139,9 @@ export function TrendStudioPage() {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div><p className="text-[10px] text-ink-muted">Posts/mo</p><p className="text-lg text-white font-medium">{comp.posts}</p></div>
-                <div><p className="text-[10px] text-ink-muted">Engagement</p><p className="text-lg text-white font-medium">{comp.engagement}%</p></div>
-                <div><p className="text-[10px] text-ink-muted">Top Content</p><p className="text-xs text-white">{comp.topContent}</p></div>
+                <div><p className="text-[10px] text-ink-muted">{t('Posts/mo')}</p><p className="text-lg text-white font-medium">{comp.posts}</p></div>
+                <div><p className="text-[10px] text-ink-muted">{t('Engagement')}</p><p className="text-lg text-white font-medium">{comp.engagement}%</p></div>
+                <div><p className="text-[10px] text-ink-muted">{t('Top Content')}</p><p className="text-xs text-white">{comp.topContent}</p></div>
               </div>
             </GlassPanel>
           ))}
@@ -159,7 +161,7 @@ export function TrendStudioPage() {
               <p className="text-xs text-ink-muted">{item.desc}</p>
               <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
                 <div>
-                  <span className="text-[10px] text-ink-muted">Adoption:</span>
+                  <span className="text-[10px] text-ink-muted">{t('Adoption:')}</span>
                   <span className="text-sm text-white font-medium ml-1">{item.adoption}%</span>
                 </div>
                 <span className="text-sm text-emerald-400 font-medium">{item.growth}</span>

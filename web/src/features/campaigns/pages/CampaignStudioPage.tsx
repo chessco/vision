@@ -4,11 +4,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { Megaphone, Plus, Calendar, LayoutGrid, Target, Trash2, BarChart3 } from 'lucide-react';
+import { Megaphone, Plus, Calendar, LayoutGrid, Target, Trash2, Edit2, BarChart3 } from 'lucide-react';
 import { PageHeader, GlassPanel, TabBar, EmptyState, StatusBadge, MetricCard, LoadingSpinner } from '../../../components/ui';
 import { toApiTenantId, MOCK_CALENDAR_EVENTS } from '../../../lib/api';
 import clsx from 'clsx';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 type CampaignTab = 'dashboard' | 'campaigns' | 'calendar' | 'planner';
 
@@ -28,6 +29,8 @@ export function CampaignStudioPage() {
   const [activeTab, setActiveTab] = useState<CampaignTab>('dashboard');
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState(MOCK_CALENDAR_EVENTS);
+  const [isCreating, setIsCreating] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   useEffect(() => {
@@ -43,9 +46,10 @@ export function CampaignStudioPage() {
     };
     fetchCampaigns();
   }, [apiTenantId]);
+  const { t } = useTranslation();
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this campaign and all its assets?')) return;
+    if (!confirm(t('Delete this campaign and all its assets?'))) return;
     try {
       await axios.delete(`/api/tenants/${apiTenantId}/campaigns/${id}`);
       setCampaigns(prev => prev.filter(c => c.id !== id));
@@ -54,25 +58,56 @@ export function CampaignStudioPage() {
     }
   };
 
+  const handleEdit = (id: string) => {
+    const campaign = campaigns.find(c => c.id === id);
+    if (!campaign) return;
+    const newName = prompt(t('Enter new name for campaign:'), campaign.name);
+    if (!newName) return;
+    const newObjective = prompt(t('Enter new objective for campaign:'), campaign.objective);
+    if (!newObjective) return;
+    
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, name: newName, objective: newObjective } : c));
+  };
+
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { id: 'campaigns', label: 'Campaigns', icon: Megaphone, count: campaigns.length },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'planner', label: 'Planner', icon: Target },
+    { id: 'dashboard', label: t('Dashboard'), icon: LayoutGrid },
+    { id: 'campaigns', label: t('Campaigns'), icon: Megaphone, count: campaigns.length },
+    { id: 'calendar', label: t('Calendar'), icon: Calendar },
+    { id: 'planner', label: t('Planner'), icon: Target },
   ];
 
-  if (loading) return <LoadingSpinner label="Loading campaign studio..." fullPage />;
+  if (loading) return <LoadingSpinner label={t('Loading campaign studio...')} fullPage />;
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6 animate-fade-in">
       <PageHeader
         icon={Megaphone}
-        title="Campaign Studio"
-        description="Plan, create, and manage marketing campaigns with AI-powered strategy."
+        title={t('Campaign Studio')}
+        description={t('Plan, create, and manage marketing campaigns with AI-powered strategy.')}
         actions={
-          <button className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all text-sm">
-            <Plus className="w-4 h-4" />
-            New Campaign
+          <button 
+            onClick={() => {
+              setIsCreating(true);
+              setTimeout(() => {
+                const newCampaign: CampaignData = {
+                  id: Date.now().toString(),
+                  name: `Nueva Campaña ${campaigns.length + 1}`,
+                  objective: 'Brand Awareness',
+                  audience: 'General',
+                  status: 'draft',
+                  createdAt: new Date().toISOString(),
+                  assets: []
+                };
+                setCampaigns(prev => [newCampaign, ...prev]);
+                alert(t('Campaign successfully created!'));
+                setIsCreating(false);
+              }, 1500);
+            }}
+            disabled={isCreating}
+            className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all text-sm disabled:opacity-50"
+          >
+            {isCreating ? <Megaphone className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {isCreating ? t('Creating...') : t('New Campaign')}
           </button>
         }
       />
@@ -82,21 +117,21 @@ export function CampaignStudioPage() {
       {activeTab === 'dashboard' && (
         <div className="space-y-6 stagger-children">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard label="Active" value={campaigns.filter(c => c.status !== 'archived').length} icon={Megaphone} />
-            <MetricCard label="Total Assets" value={campaigns.reduce((sum, c) => sum + (c.assets?.length || 0), 0)} icon={BarChart3} />
-            <MetricCard label="This Month" value={campaigns.filter(c => new Date(c.createdAt).getMonth() === new Date().getMonth()).length} icon={Calendar} />
-            <MetricCard label="Avg. Assets" value={campaigns.length ? Math.round(campaigns.reduce((sum, c) => sum + (c.assets?.length || 0), 0) / campaigns.length) : 0} icon={Target} />
+            <MetricCard label={t('Active')} value={campaigns.filter(c => c.status !== 'archived').length} icon={Megaphone} />
+            <MetricCard label={t('Total Assets')} value={campaigns.reduce((sum, c) => sum + (c.assets?.length || 0), 0)} icon={BarChart3} />
+            <MetricCard label={t('This Month')} value={campaigns.filter(c => new Date(c.createdAt).getMonth() === new Date().getMonth()).length} icon={Calendar} />
+            <MetricCard label={t('Avg. Assets')} value={campaigns.length ? Math.round(campaigns.reduce((sum, c) => sum + (c.assets?.length || 0), 0) / campaigns.length) : 0} icon={Target} />
           </div>
 
           {campaigns.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {campaigns.slice(0, 4).map(campaign => (
-                <CampaignCard key={campaign.id} campaign={campaign} onDelete={handleDelete} />
+                <CampaignCard key={campaign.id} campaign={campaign} onDelete={handleDelete} onEdit={handleEdit} />
               ))}
             </div>
           ) : (
             <GlassPanel className="p-6">
-              <EmptyState icon={Megaphone} title="No campaigns yet" description="Create your first campaign to start organizing your creative content." action={{ label: 'Create Campaign', onClick: () => {} }} />
+              <EmptyState icon={Megaphone} title={t('No campaigns yet')} description={t('Create your first campaign to start organizing your creative content.')} action={{ label: t('Create Campaign'), onClick: () => {} }} />
             </GlassPanel>
           )}
         </div>
@@ -106,11 +141,11 @@ export function CampaignStudioPage() {
         <div className="space-y-4 stagger-children">
           {campaigns.length === 0 ? (
             <GlassPanel className="p-6">
-              <EmptyState icon={Megaphone} title="No campaigns yet" description="Go to Creative Chat and approve a design to create your first campaign." />
+              <EmptyState icon={Megaphone} title={t('No campaigns yet')} description={t('Go to Creative Chat and approve a design to create your first campaign.')} />
             </GlassPanel>
           ) : (
             campaigns.map(campaign => (
-              <CampaignCard key={campaign.id} campaign={campaign} onDelete={handleDelete} />
+              <CampaignCard key={campaign.id} campaign={campaign} onDelete={handleDelete} onEdit={handleEdit} />
             ))
           )}
         </div>
@@ -120,18 +155,18 @@ export function CampaignStudioPage() {
         <GlassPanel className="p-6 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-headings font-semibold text-white">
-              Week of {format(currentWeekStart, 'MMM d, yyyy')}
+              {t('Week of')} {format(currentWeekStart, 'MMM d, yyyy')}
             </h3>
             <div className="flex gap-2">
-              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-ink-muted hover:text-white transition-colors">← Prev</button>
-              <button onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))} className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">Today</button>
-              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-ink-muted hover:text-white transition-colors">Next →</button>
+              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-ink-muted hover:text-white transition-colors">← {t('Prev')}</button>
+              <button onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))} className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">{t('Today')}</button>
+              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-ink-muted hover:text-white transition-colors">{t('Next')} →</button>
             </div>
           </div>
           <div className="grid grid-cols-7 gap-3">
             {Array.from({ length: 7 }).map((_, i) => {
               const day = addDays(currentWeekStart, i);
-              const dayEvents = MOCK_CALENDAR_EVENTS.filter(e => isSameDay(new Date(e.date), day));
+              const dayEvents = calendarEvents.filter(e => isSameDay(new Date(e.date), day));
               const isToday = isSameDay(day, new Date());
               return (
                 <div key={i} className={clsx('rounded-xl border p-3 min-h-[120px]', isToday ? 'border-primary/30 bg-primary/5' : 'border-border-subtle bg-white/2')}>
@@ -141,7 +176,16 @@ export function CampaignStudioPage() {
                   </div>
                   <div className="space-y-1.5">
                     {dayEvents.map(event => (
-                      <div key={event.id} className="px-2 py-1.5 rounded-md bg-white/5 border border-white/5">
+                      <div 
+                        key={event.id} 
+                        onClick={() => {
+                          const newTitle = prompt(t('Enter new title for event:'), event.title);
+                          if (newTitle) {
+                            setCalendarEvents(prev => prev.map(e => e.id === event.id ? { ...e, title: newTitle } : e));
+                          }
+                        }}
+                        className="px-2 py-1.5 rounded-md bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                      >
                         <p className="text-[10px] text-white font-medium truncate">{event.title}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <span className="text-[9px] text-ink-muted">{event.time}</span>
@@ -159,14 +203,15 @@ export function CampaignStudioPage() {
 
       {activeTab === 'planner' && (
         <GlassPanel className="p-6 animate-fade-in">
-          <EmptyState icon={Target} title="Campaign Planner" description="Strategic planning with AI-powered campaign recommendations and timeline visualization." action={{ label: 'Start Planning', onClick: () => {} }} />
+          <EmptyState icon={Target} title={t('Campaign Planner')} description={t('Strategic planning with AI-powered campaign recommendations and timeline visualization.')} action={{ label: t('Start Planning'), onClick: () => {} }} />
         </GlassPanel>
       )}
     </div>
   );
 }
 
-function CampaignCard({ campaign, onDelete }: { campaign: CampaignData; onDelete: (id: string) => void }) {
+export function CampaignCard({ campaign, onDelete, onEdit }: { campaign: CampaignData; onDelete: (id: string) => void; onEdit?: (id: string) => void }) {
+  const { t } = useTranslation();
   return (
     <GlassPanel className="p-5 space-y-3 group" hover>
       <div className="flex items-start justify-between">
@@ -177,12 +222,19 @@ function CampaignCard({ campaign, onDelete }: { campaign: CampaignData; onDelete
             <span className="flex items-center gap-1"><Target className="w-3 h-3" />{campaign.audience}</span>
           </div>
         </div>
-        <button onClick={() => onDelete(campaign.id)} className="text-ink-muted hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button onClick={() => onEdit(campaign.id)} className="text-ink-muted hover:text-white transition-colors p-1" title="Edit">
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={() => onDelete(campaign.id)} className="text-ink-muted hover:text-red-400 transition-colors p-1" title="Delete">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       <div className="p-3 rounded-lg bg-background border border-border-subtle">
-        <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">Objective</span>
+        <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Objective')}</span>
         <p className="text-sm text-white mt-1 line-clamp-2">{campaign.objective}</p>
       </div>
       {campaign.assets && campaign.assets.length > 0 && (

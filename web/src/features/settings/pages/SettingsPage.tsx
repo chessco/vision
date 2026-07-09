@@ -4,6 +4,7 @@ import {
   AlertCircle, Server, Database, Key, Globe, ChevronRight,
   Sparkles, Lock, Activity, Pencil
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConnectionTest {
   status: 'idle' | 'testing' | 'ok' | 'error';
@@ -47,6 +48,7 @@ export function SettingsPage() {
   const [editingLocal, setEditingLocal] = useState(false);
   const [tempProdUrl, setTempProdUrl] = useState(urls.prod);
   const [tempLocalUrl, setTempLocalUrl] = useState(urls.local);
+  const { t } = useTranslation();
 
   useEffect(() => {
     saveUrls(urls);
@@ -95,31 +97,31 @@ export function SettingsPage() {
     } catch (err: any) {
       const latency = Date.now() - start;
       const msg = err?.name === 'TimeoutError'
-        ? 'Timeout: El servidor no respondió en 8s'
-        : err?.message || 'No se pudo conectar';
+        ? t('Timeout: El servidor no respondió en 8s')
+        : err?.message || t('No se pudo conectar');
       setter({ status: 'error', message: msg, latency });
     }
-  }, []);
+  }, [t]);
 
   const StatusBadge = ({ test }: { test: ConnectionTest }) => {
     if (test.status === 'idle') return (
-      <span className="text-xs text-ink-muted font-labels">Sin probar</span>
+      <span className="text-xs text-ink-muted font-labels">{t('Sin probar')}</span>
     );
     if (test.status === 'testing') return (
       <span className="flex items-center gap-1.5 text-xs text-primary font-labels">
-        <RefreshCw className="w-3 h-3 animate-spin" /> Probando...
+        <RefreshCw className="w-3 h-3 animate-spin" /> {t('Probando...')}
       </span>
     );
     if (test.status === 'ok') return (
       <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-labels font-semibold">
         <CheckCircle2 className="w-3.5 h-3.5" />
-        Conectado · {test.latency}ms · {test.version}
+        {t('Conectado')} · {test.latency}ms · {test.version}
       </span>
     );
     return (
       <span className="flex items-center gap-1.5 text-xs text-red-400 font-labels font-semibold">
         <AlertCircle className="w-3.5 h-3.5" />
-        Error: {test.message}
+        {t('Error')}: {test.message}
       </span>
     );
   };
@@ -156,12 +158,12 @@ export function SettingsPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <h3 className="text-sm font-semibold text-white">{t(title)}</h3>
                 {isActive && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/20 text-primary rounded">ACTIVA</span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/20 text-primary rounded">{t('ACTIVA')}</span>
                 )}
               </div>
-              <p className="text-xs text-ink-muted mt-0.5">{subtitle}</p>
+              <p className="text-xs text-ink-muted mt-0.5">{t(subtitle)}</p>
               {isEditing ? (
                 <div className="mt-2 flex items-center gap-2">
                   <Globe className="w-3 h-3 text-ink-muted/50 shrink-0" />
@@ -176,13 +178,13 @@ export function SettingsPage() {
                     onClick={onSave}
                     className="px-2 py-1 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30"
                   >
-                    Guardar
+                    {t('Guardar')}
                   </button>
                   <button
                     onClick={onCancel}
                     className="px-2 py-1 text-[10px] font-medium bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"
                   >
-                    Cancelar
+                    {t('Cancelar')}
                   </button>
                 </div>
               ) : (
@@ -209,8 +211,8 @@ export function SettingsPage() {
             }`}
           >
             {test.status === 'testing'
-              ? <><RefreshCw className="w-3 h-3 animate-spin" />Probando</>
-              : <><Wifi className="w-3 h-3" />Probar</>
+              ? <><RefreshCw className="w-3 h-3 animate-spin" />{t('Probando')}</>
+              : <><Wifi className="w-3 h-3" />{t('Probar')}</>
             }
           </button>
         </div>
@@ -229,9 +231,9 @@ export function SettingsPage() {
         {test.status === 'ok' && test.latency !== undefined && (
           <div className="mt-3">
             <div className="flex justify-between text-[10px] text-ink-muted mb-1">
-              <span>Latencia</span>
+              <span>{t('Latencia')}</span>
               <span className={test.latency < 300 ? 'text-emerald-400' : test.latency < 800 ? 'text-yellow-400' : 'text-red-400'}>
-                {test.latency < 300 ? '🟢 Excelente' : test.latency < 800 ? '🟡 Aceptable' : '🔴 Alta'}
+                {test.latency < 300 ? `🟢 ${t('Excelente')}` : test.latency < 800 ? `🟡 ${t('Aceptable')}` : `🔴 ${t('Alta')}`}
               </span>
             </div>
             <div className="w-full h-1.5 bg-border-subtle rounded-full overflow-hidden">
@@ -252,9 +254,9 @@ export function SettingsPage() {
       <header className="space-y-1">
         <h1 className="text-3xl font-headings font-bold text-white flex items-center gap-2">
           <Settings className="w-7 h-7 text-primary" />
-          Configuración
+          {t('Configuración')}
         </h1>
-        <p className="text-ink-muted text-sm">Administra la conectividad y configuración del sistema.</p>
+        <p className="text-ink-muted text-sm">{t('Administra la conectividad y configuración del sistema.')}</p>
       </header>
 
       {/* Section: PitayaCore Connection */}
@@ -262,7 +264,7 @@ export function SettingsPage() {
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-4 h-4 text-primary" />
           <h2 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">
-            Conectividad — PitayaCore API
+            {t('Conectividad — PitayaCore API')}
           </h2>
           <div className="flex-1 h-px bg-border-subtle" />
         </div>
@@ -305,17 +307,17 @@ export function SettingsPage() {
         <div className="flex items-center gap-2 mb-4">
           <Key className="w-4 h-4 text-primary" />
           <h2 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">
-            Información del Entorno
+            {t('Información del Entorno')}
           </h2>
           <div className="flex-1 h-px bg-border-subtle" />
         </div>
 
         <div className="glass-panel rounded-xl p-5 border border-border-subtle space-y-3">
           {[
-            { label: 'Versión de Pitaya Visual', value: 'MVP 1.0 — Refactor Sprint', icon: Sparkles },
-            { label: 'URL de PitayaCore (Prod)', value: urls.prod, icon: Globe },
-            { label: 'Conexión Activa', value: activeUrl || 'Ninguna (probar para activar)', icon: Activity },
-            { label: 'Modo', value: import.meta.env.MODE || 'production', icon: Lock },
+            { label: t('Versión de Pitaya Visual'), value: 'MVP 1.0 — Refactor Sprint', icon: Sparkles },
+            { label: t('URL de PitayaCore (Prod)'), value: urls.prod, icon: Globe },
+            { label: t('Conexión Activa'), value: activeUrl || t('Ninguna (probar para activar)'), icon: Activity },
+            { label: t('Modo'), value: import.meta.env.MODE || 'production', icon: Lock },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="flex items-center justify-between py-2 border-b border-border-subtle/50 last:border-0">
               <div className="flex items-center gap-2 text-sm text-ink-muted">
@@ -333,19 +335,19 @@ export function SettingsPage() {
         <div className="flex items-center gap-2 mb-4">
           <ChevronRight className="w-4 h-4 text-primary" />
           <h2 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">
-            Siguientes Pasos de Integración
+            {t('Siguientes Pasos de Integración')}
           </h2>
           <div className="flex-1 h-px bg-border-subtle" />
         </div>
 
         <div className="glass-panel rounded-xl border border-border-subtle overflow-hidden">
           {[
-            { done: true,  label: 'Frontend refactorizado como Director Creativo IA' },
-            { done: true,  label: 'Schema de BD (MySQL) limpiado y regenerado' },
-            { done: true,  label: 'Módulo vision-campaigns añadido a PitayaCore' },
-            { done: false, label: 'Conectar Creative Chat al Agente de PitayaCore (romper mock)' },
-            { done: false, label: 'Integrar Credit Engine en el flujo de generación' },
-            { done: false, label: 'Activar generación de imágenes real (Fal.ai / Replicate)' },
+            { done: true,  label: t('Frontend refactorizado como Director Creativo IA') },
+            { done: true,  label: t('Schema de BD (MySQL) limpiado y regenerado') },
+            { done: true,  label: t('Módulo vision-campaigns añadido a PitayaCore') },
+            { done: false, label: t('Conectar Creative Chat al Agente de PitayaCore (romper mock)') },
+            { done: false, label: t('Integrar Credit Engine en el flujo de generación') },
+            { done: false, label: t('Activar generación de imágenes real (Fal.ai / Replicate)') },
           ].map(({ done, label }, i) => (
             <div
               key={i}

@@ -3,21 +3,23 @@ import {
   LayoutDashboard, Presentation, MessageSquare, UserPlus, Layers, 
   Folder, Settings, Sparkles, CalendarCheck, FlaskConical
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function Sidebar() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: `/t/${tenantId}/visual/dashboard` },
-    { icon: Sparkles, label: 'Crear', path: `/t/${tenantId}/visual/create` },
-    { icon: MessageSquare, label: 'Creative Chat', path: `/t/${tenantId}/visual/chat` },
-    { icon: UserPlus, label: 'Personajes', path: `/t/${tenantId}/visual/characters` },
-    { icon: Layers, label: 'Marcas', path: `/t/${tenantId}/visual/brand` },
-    { icon: Folder, label: 'Biblioteca', path: `/t/${tenantId}/visual/library` },
-    { icon: Presentation, label: 'Campañas', path: `/t/${tenantId}/visual/campaigns` },
-    { icon: CalendarCheck, label: 'Workflow', path: `/t/${tenantId}/visual/workflow` },
-    { icon: FlaskConical, label: 'Connectors', path: `/t/${tenantId}/visual/verticals-test` },
+    { icon: LayoutDashboard, label: t('Dashboard'), path: `/t/${tenantId}/visual/dashboard` },
+    { icon: Sparkles, label: t('Crear'), path: `/t/${tenantId}/visual/create` },
+    { icon: MessageSquare, label: t('Creative Chat'), path: `/t/${tenantId}/visual/chat` },
+    { icon: UserPlus, label: t('Personajes'), path: `/t/${tenantId}/visual/characters` },
+    { icon: Layers, label: t('Marcas'), path: `/t/${tenantId}/visual/brand` },
+    { icon: Folder, label: t('Biblioteca'), path: `/t/${tenantId}/visual/library` },
+    { icon: Presentation, label: t('Campañas'), path: `/t/${tenantId}/visual/campaigns` },
+    { icon: CalendarCheck, label: t('Workflow'), path: `/t/${tenantId}/visual/workflow` },
+    { icon: FlaskConical, label: t('Connectors'), path: `/t/${tenantId}/visual/verticals-test` },
   ];
 
   return (
@@ -51,11 +53,11 @@ export function Sidebar() {
       <div className="p-4 border-t border-border-subtle">
         <Link
           to={`/t/${tenantId}/visual/settings`}
-          title="Configuración"
+          title={t('Configuración')}
           className="flex items-center gap-3 p-3 rounded-md text-ink-muted hover:bg-white/5 hover:text-white transition-colors"
         >
           <Settings className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-medium hidden lg:block truncate">Configuración</span>
+          <span className="text-sm font-medium hidden lg:block truncate">{t('Configuración')}</span>
         </Link>
       </div>
     </aside>

@@ -8,6 +8,7 @@ import { Image as ImageIcon, Video, Box, LayoutTemplate, Search, Filter, Upload,
 import { PageHeader, GlassPanel, TabBar, EmptyState, LoadingSpinner } from '../../../components/ui';
 import { toApiTenantId } from '../../../lib/api';
 import type { Asset } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 type ViewMode = 'all' | 'images' | 'videos' | 'loras' | 'templates';
 
@@ -18,6 +19,7 @@ export function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchAssets = async () => {
@@ -34,11 +36,11 @@ export function LibraryPage() {
   }, [apiTenantId]);
 
   const tabs = [
-    { id: 'all', label: 'All Assets', icon: Box, count: assets.length },
-    { id: 'images', label: 'Images', icon: ImageIcon, count: assets.filter(a => a.type === 'image' || a.type === 'generated').length },
-    { id: 'videos', label: 'Videos', icon: Video, count: assets.filter(a => a.type === 'video').length },
-    { id: 'loras', label: 'AI Models (LoRA)', icon: Sparkles, count: assets.filter(a => a.type === 'lora').length },
-    { id: 'templates', label: 'Templates', icon: LayoutTemplate, count: assets.filter(a => a.type === 'template').length },
+    { id: 'all', label: t('All Assets'), icon: Box, count: assets.length },
+    { id: 'images', label: t('Images'), icon: ImageIcon, count: assets.filter(a => a.type === 'image' || a.type === 'generated').length },
+    { id: 'videos', label: t('Videos'), icon: Video, count: assets.filter(a => a.type === 'video').length },
+    { id: 'loras', label: t('AI Models (LoRA)'), icon: Sparkles, count: assets.filter(a => a.type === 'lora').length },
+    { id: 'templates', label: t('Templates'), icon: LayoutTemplate, count: assets.filter(a => a.type === 'template').length },
   ];
 
   const filteredAssets = assets
@@ -48,18 +50,18 @@ export function LibraryPage() {
     .filter(a => (a.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                  a.tags?.some(t => (t || '').toLowerCase().includes(searchQuery.toLowerCase())));
 
-  if (loading) return <LoadingSpinner label="Loading Asset Studio..." fullPage />;
+  if (loading) return <LoadingSpinner label={t('Loading Asset Studio...')} fullPage />;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in flex flex-col h-full">
       <PageHeader
         icon={ImageIcon}
-        title="Asset Studio"
-        description="Centralized library for your brand images, videos, generated art, and custom AI models."
+        title={t('Asset Studio')}
+        description={t('Centralized library for your brand images, videos, generated art, and custom AI models.')}
         actions={
           <button className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all text-sm">
             <Upload className="w-4 h-4" />
-            Upload Asset
+            {t('Upload Asset')}
           </button>
         }
       />
@@ -72,7 +74,7 @@ export function LibraryPage() {
             <Search className="w-4 h-4 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Search assets..." 
+              placeholder={t('Search assets...')} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-white/5 border border-border-subtle rounded-lg pl-9 pr-4 py-1.5 text-sm text-white focus:border-primary focus:outline-none w-[200px]"
@@ -88,9 +90,9 @@ export function LibraryPage() {
         <GlassPanel className="p-12 flex-1">
           <EmptyState
             icon={Box}
-            title="No Assets Found"
-            description={searchQuery ? "No assets match your search criteria." : "Your asset library is empty. Upload files or generate new art via Creative Chat."}
-            action={!searchQuery ? { label: 'Upload Files', onClick: () => {} } : undefined}
+            title={t('No Assets Found')}
+            description={searchQuery ? t("No assets match your search criteria.") : t("Your asset library is empty. Upload files or generate new art via Creative Chat.")}
+            action={!searchQuery ? { label: t('Upload Files'), onClick: () => {} } : undefined}
           />
         </GlassPanel>
       ) : (
@@ -104,8 +106,9 @@ export function LibraryPage() {
   );
 }
 
-function AssetCard({ asset }: { asset: Asset }) {
+export function AssetCard({ asset }: { asset: Asset }) {
   const isImage = asset.type === 'image' || asset.type === 'generated' || asset.type === 'brand_asset';
+  const { t } = useTranslation();
   
   return (
     <div className="group rounded-xl border border-border-subtle bg-paper overflow-hidden hover:border-primary/40 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all">
@@ -122,16 +125,16 @@ function AssetCard({ asset }: { asset: Asset }) {
         
         {/* Overlay Actions */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          <button className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors" title="View"><Maximize2 className="w-4 h-4" /></button>
-          <button className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors" title="Download"><Download className="w-4 h-4" /></button>
-          <button className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-200 backdrop-blur-sm transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
+          <button className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors" title={t("View")}><Maximize2 className="w-4 h-4" /></button>
+          <button className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors" title={t("Download")}><Download className="w-4 h-4" /></button>
+          <button className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-200 backdrop-blur-sm transition-colors" title={t("Delete")}><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
       
       <div className="p-3">
         <h3 className="text-xs font-medium text-white truncate" title={asset.name}>{asset.name}</h3>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-[10px] text-ink-muted uppercase">{asset.type}</span>
+          <span className="text-[10px] text-ink-muted uppercase">{t(asset.type)}</span>
           <span className="text-[10px] text-ink-muted">{formatBytes(asset.sizeBytes)}</span>
         </div>
       </div>

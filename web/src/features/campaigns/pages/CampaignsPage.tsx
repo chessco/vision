@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { Layers, Loader2, Calendar, Target, Trash2 } from 'lucide-react';
 import { toApiTenantId } from '../../../utils/tenant';
+import { useTranslation } from 'react-i18next';
 
 interface AssetPreview {
   id: string;
@@ -20,6 +21,7 @@ interface Campaign {
 }
 
 export function CampaignsPage() {
+  const { t } = useTranslation();
   const { tenantId } = useParams<{ tenantId: string }>();
   const apiTenantId = toApiTenantId(tenantId!);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export function CampaignsPage() {
   }, [tenantId]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta campaña y todos sus activos?')) return;
+    if (!confirm(t('¿Estás seguro de eliminar esta campaña y todos sus activos?'))) return;
     try {
       await axios.delete(`/api/tenants/${apiTenantId}/campaigns/${id}`);
       await fetchCampaigns();
@@ -55,9 +57,9 @@ export function CampaignsPage() {
       <header className="space-y-2">
         <h1 className="text-3xl font-headings font-bold text-white flex items-center gap-2">
           <Layers className="w-8 h-8 text-primary" />
-          Campañas
+          {t('Campañas')}
         </h1>
-        <p className="text-ink-muted">Agrupación de activos generados bajo un mismo objetivo de marketing.</p>
+        <p className="text-ink-muted">{t('Agrupación de activos generados bajo un mismo objetivo de marketing.')}</p>
       </header>
 
       {loading ? (
@@ -67,8 +69,8 @@ export function CampaignsPage() {
       ) : campaigns.length === 0 ? (
         <div className="glass-panel p-12 flex flex-col items-center justify-center text-center space-y-4">
           <Layers className="w-12 h-12 text-ink-muted" />
-          <h3 className="text-lg font-semibold text-white">No tienes campañas aún</h3>
-          <p className="text-sm text-ink-muted max-w-sm">Ve al Chat Creativo y aprueba un diseño para crear tu primera campaña.</p>
+          <h3 className="text-lg font-semibold text-white">{t('No tienes campañas aún')}</h3>
+          <p className="text-sm text-ink-muted max-w-sm">{t('Ve al Chat Creativo y aprueba un diseño para crear tu primera campaña.')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -77,7 +79,7 @@ export function CampaignsPage() {
               <button 
                 onClick={() => handleDelete(campaign.id)}
                 className="absolute top-4 right-4 text-ink-muted hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                title="Eliminar campaña"
+                title={t('Eliminar campaña')}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -91,12 +93,12 @@ export function CampaignsPage() {
               </div>
 
               <div className="p-3 rounded-md bg-background border border-border-subtle">
-                <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">Objetivo / Copy Base</span>
+                <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Objetivo / Copy Base')}</span>
                 <p className="text-sm text-white mt-1 line-clamp-2">{campaign.objective}</p>
               </div>
 
               <div className="space-y-2">
-                <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">Activos ({campaign.assets?.length || 0})</span>
+                <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Activos')} ({campaign.assets?.length || 0})</span>
                 {campaign.assets && campaign.assets.length > 0 ? (
                   <div className="flex gap-2 overflow-x-auto pb-2">
                     {campaign.assets.map(asset => (
@@ -106,7 +108,7 @@ export function CampaignsPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-ink-muted italic">Sin activos en esta campaña.</p>
+                  <p className="text-xs text-ink-muted italic">{t('Sin activos en esta campaña.')}</p>
                 )}
               </div>
             </div>

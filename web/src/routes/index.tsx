@@ -4,6 +4,7 @@ import { TenantGuard } from './TenantGuard';
 // ─── Page Imports ────────────────────────────────────────────────
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage';
 import { CreativeChatPage } from '../features/chat/pages/CreativeChatPage';
+import { CreativeChatLegacyPage } from '../features/chat/pages/CreativeChatLegacyPage';
 import { BrandStudioPage } from '../features/brand/pages/BrandStudioPage';
 import { AudienceStudioPage } from '../features/audience/pages/AudienceStudioPage';
 import { CampaignStudioPage } from '../features/campaigns/pages/CampaignStudioPage';
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       // Core
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'chat', element: <CreativeChatPage /> },
+      { path: 'legacy-chat', element: <CreativeChatLegacyPage /> },
 
       // Social Suite
       { path: 'brand', element: <BrandStudioPage /> },

@@ -7,6 +7,7 @@ import { PageHeader, GlassPanel, TabBar, MetricCard, } from '../../../components
 import { MOCK_ANALYTICS_METRICS, MOCK_AI_INSIGHTS } from '../../../lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from 'recharts';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 type AnalyticsTab = 'overview' | 'ai-insights' | 'channels';
 
@@ -32,19 +33,20 @@ export function AnalyticsStudioPage() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
   const metrics = MOCK_ANALYTICS_METRICS;
   const insights = MOCK_AI_INSIGHTS;
+  const { t } = useTranslation();
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'ai-insights', label: 'AI Insights', icon: Lightbulb },
-    { id: 'channels', label: 'Channels', icon: Target },
+    { id: 'overview', label: t('Overview'), icon: BarChart3 },
+    { id: 'ai-insights', label: t('AI Insights'), icon: Lightbulb },
+    { id: 'channels', label: t('Channels'), icon: Target },
   ];
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6 animate-fade-in">
       <PageHeader
         icon={BarChart3}
-        title="Analytics Studio"
-        description="Executive analytics dashboard. Understand what works, why it works, and what to do next."
+        title={t('Analytics Studio')}
+        description={t('Executive analytics dashboard. Understand what works, why it works, and what to do next.')}
       />
 
       <TabBar tabs={tabs} activeTab={activeTab} onChange={(id) => setActiveTab(id as AnalyticsTab)} />
@@ -56,7 +58,7 @@ export function AnalyticsStudioPage() {
             {metrics.slice(0, 8).map((metric) => (
               <MetricCard
                 key={metric.label}
-                label={metric.label}
+                label={t(metric.label)}
                 value={metric.label === 'CTR' || metric.label === 'Engagement' ? `${metric.value}%` : metric.value}
                 change={metric.change}
                 trend={metric.trend}
@@ -69,7 +71,7 @@ export function AnalyticsStudioPage() {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <GlassPanel className="p-6">
-              <h3 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider mb-4">Reach Over Time</h3>
+              <h3 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider mb-4">{t('Reach Over Time')}</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={CHART_DATA}>
                   <defs>
@@ -88,7 +90,7 @@ export function AnalyticsStudioPage() {
             </GlassPanel>
 
             <GlassPanel className="p-6">
-              <h3 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider mb-4">Engagement by Day</h3>
+              <h3 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider mb-4">{t('Engagement by Day')}</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={CHART_DATA}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#262235" />
@@ -106,8 +108,8 @@ export function AnalyticsStudioPage() {
       {activeTab === 'ai-insights' && (
         <div className="space-y-4 stagger-children">
           <GlassPanel className="p-5 border-l-4 border-l-primary">
-            <h3 className="text-sm font-labels font-semibold text-primary uppercase tracking-wider mb-1">AI Analytics Summary</h3>
-            <p className="text-sm text-white">Your content performance improved 18% this week. Storytelling posts are your strongest format, and Facebook remains your highest-converting channel.</p>
+            <h3 className="text-sm font-labels font-semibold text-primary uppercase tracking-wider mb-1">{t('AI Analytics Summary')}</h3>
+            <p className="text-sm text-white">{t('Your content performance improved 18% this week. Storytelling posts are your strongest format, and Facebook remains your highest-converting channel.')}</p>
           </GlassPanel>
 
           {insights.map((insight) => (
@@ -125,8 +127,8 @@ export function AnalyticsStudioPage() {
                  <Lightbulb className="w-5 h-5" />}
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-semibold text-white">{insight.title}</h4>
-                <p className="text-xs text-ink-muted mt-1">{insight.description}</p>
+                <h4 className="text-sm font-semibold text-white">{t(insight.title)}</h4>
+                <p className="text-xs text-ink-muted mt-1">{t(insight.description)}</p>
               </div>
               {insight.value && (
                 <span className={clsx(
@@ -153,19 +155,19 @@ export function AnalyticsStudioPage() {
                 </div>
                 <div className="flex-1 grid grid-cols-4 gap-4">
                   <div>
-                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">Reach</p>
+                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">{t('Reach')}</p>
                     <p className="text-sm text-white font-medium">{channel.reach.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">Engagement</p>
+                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">{t('Engagement')}</p>
                     <p className="text-sm text-white font-medium">{channel.engagement}%</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">CTR</p>
+                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">{t('CTR')}</p>
                     <p className="text-sm text-white font-medium">{channel.ctr}%</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">Leads</p>
+                    <p className="text-[10px] text-ink-muted uppercase tracking-wider">{t('Leads')}</p>
                     <p className="text-sm text-white font-medium">{channel.leads}</p>
                   </div>
                 </div>

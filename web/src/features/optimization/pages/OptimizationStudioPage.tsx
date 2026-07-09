@@ -6,18 +6,20 @@ import { Lightbulb, ArrowUpRight, Beaker, Target, BarChart3, Zap } from 'lucide-
 import { PageHeader, GlassPanel, TabBar, EmptyState } from '../../../components/ui';
 import { MOCK_OPTIMIZATION_RECOMMENDATIONS } from '../../../lib/api';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 type OptimizationTab = 'recommendations' | 'ab-testing' | 'suggestions' | 'roi';
 
 export function OptimizationStudioPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<OptimizationTab>('recommendations');
   const recommendations = MOCK_OPTIMIZATION_RECOMMENDATIONS;
 
   const tabs = [
-    { id: 'recommendations', label: 'Recommendations', icon: Lightbulb, count: recommendations.filter(r => r.status === 'pending').length },
-    { id: 'ab-testing', label: 'A/B Testing', icon: Beaker },
-    { id: 'suggestions', label: 'Content Ideas', icon: Zap },
-    { id: 'roi', label: 'ROI Optimization', icon: BarChart3 },
+    { id: 'recommendations', label: t('Recommendations'), icon: Lightbulb, count: recommendations.filter(r => r.status === 'pending').length },
+    { id: 'ab-testing', label: t('A/B Testing'), icon: Beaker },
+    { id: 'suggestions', label: t('Content Ideas'), icon: Zap },
+    { id: 'roi', label: t('ROI Optimization'), icon: BarChart3 },
   ];
 
   const impactColor = (impact: string) => impact === 'high' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : impact === 'medium' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-blue-400 bg-blue-500/10 border-blue-500/20';
@@ -27,8 +29,8 @@ export function OptimizationStudioPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6 animate-fade-in">
       <PageHeader
         icon={Lightbulb}
-        title="Optimization Studio"
-        description="AI-driven recommendations to improve your content performance and maximize ROI."
+        title={t('Optimization Studio')}
+        description={t('AI-driven recommendations to improve your content performance and maximize ROI.')}
       />
 
       <TabBar tabs={tabs} activeTab={activeTab} onChange={(id) => setActiveTab(id as OptimizationTab)} />
@@ -39,8 +41,8 @@ export function OptimizationStudioPage() {
           <GlassPanel className="p-5 border-l-4 border-l-primary">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white">AI Optimization Score</h3>
-                <p className="text-xs text-ink-muted mt-0.5">Your content strategy can improve by an estimated 35% with these recommendations.</p>
+                <h3 className="text-sm font-semibold text-white">{t('AI Optimization Score')}</h3>
+                <p className="text-xs text-ink-muted mt-0.5">{t('Your content strategy can improve by an estimated 35% with these recommendations.')}</p>
               </div>
               <div className="text-3xl font-headings font-bold text-primary">65<span className="text-lg text-ink-muted">/100</span></div>
             </div>
@@ -56,16 +58,16 @@ export function OptimizationStudioPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-sm font-semibold text-white">{rec.title}</h4>
                     <span className={clsx('text-[10px] px-2 py-0.5 rounded-full border font-medium uppercase', impactColor(rec.impact))}>
-                      {rec.impact} impact
+                      {rec.impact} {t('impact')}
                     </span>
                   </div>
                   <p className="text-xs text-ink-muted">{rec.description}</p>
                   <div className="flex items-center gap-4 mt-3">
-                    <span className="text-[10px] text-ink-muted">Effort: <span className={effortColor(rec.effort)}>{rec.effort}</span></span>
+                    <span className="text-[10px] text-ink-muted">{t('Effort:')} <span className={effortColor(rec.effort)}>{rec.effort}</span></span>
                   </div>
                 </div>
                 <button className="px-4 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors flex items-center gap-1 shrink-0">
-                  Apply <ArrowUpRight className="w-3 h-3" />
+                  {t('Apply')} <ArrowUpRight className="w-3 h-3" />
                 </button>
               </div>
             </GlassPanel>
@@ -75,7 +77,7 @@ export function OptimizationStudioPage() {
 
       {activeTab === 'ab-testing' && (
         <GlassPanel className="p-6 animate-fade-in">
-          <EmptyState icon={Beaker} title="A/B Testing" description="Create split tests for your content to find what resonates best with your audience." action={{ label: 'Create A/B Test', onClick: () => {} }} />
+          <EmptyState icon={Beaker} title={t('A/B Testing')} description={t('Create split tests for your content to find what resonates best with your audience.')} action={{ label: t('Create A/B Test'), onClick: () => {} }} />
         </GlassPanel>
       )}
 
@@ -96,8 +98,8 @@ export function OptimizationStudioPage() {
               </div>
               <p className="text-xs text-ink-muted">{suggestion.desc}</p>
               <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
-                <span className="text-[10px] text-ink-muted">Best for: <span className="text-white">{suggestion.platform}</span></span>
-                <button className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors">Create Now</button>
+                <span className="text-[10px] text-ink-muted">{t('Best for:')} <span className="text-white">{suggestion.platform}</span></span>
+                <button className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors">{t('Create Now')}</button>
               </div>
             </GlassPanel>
           ))}
@@ -106,7 +108,7 @@ export function OptimizationStudioPage() {
 
       {activeTab === 'roi' && (
         <GlassPanel className="p-6 animate-fade-in">
-          <EmptyState icon={BarChart3} title="ROI Optimization" description="Track and optimize your return on investment across campaigns and channels." action={{ label: 'Configure ROI Tracking', onClick: () => {} }} />
+          <EmptyState icon={BarChart3} title={t('ROI Optimization')} description={t('Track and optimize your return on investment across campaigns and channels.')} action={{ label: t('Configure ROI Tracking'), onClick: () => {} }} />
         </GlassPanel>
       )}
     </div>

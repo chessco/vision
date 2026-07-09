@@ -11,6 +11,7 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface NavItem {
   icon: typeof LayoutDashboard;
@@ -27,6 +28,7 @@ export function AppSidebar() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useTranslation();
 
   const basePath = `/t/${tenantId}/visual`;
 
@@ -34,29 +36,30 @@ export function AppSidebar() {
     {
       title: '',
       items: [
-        { icon: LayoutDashboard, label: 'Dashboard', path: `${basePath}/dashboard` },
-        { icon: MessageSquare, label: 'Creative Chat', path: `${basePath}/chat` },
+        { icon: LayoutDashboard, label: t('Dashboard'), path: `${basePath}/dashboard` },
+        { icon: MessageSquare, label: t('Creative Chat'), path: `${basePath}/chat` },
+        { icon: MessageSquare, label: t('Legacy Chat'), path: `${basePath}/legacy-chat` },
       ],
     },
     {
-      title: 'SOCIAL',
+      title: t('SOCIAL'),
       items: [
-        { icon: Palette, label: 'Brand Studio', path: `${basePath}/brand` },
-        { icon: Users, label: 'Audience Studio', path: `${basePath}/audience` },
-        { icon: Megaphone, label: 'Campaign Studio', path: `${basePath}/campaigns` },
-        { icon: FileText, label: 'Content Studio', path: `${basePath}/content` },
-        { icon: Send, label: 'Publisher Studio', path: `${basePath}/publisher` },
-        { icon: BarChart3, label: 'Analytics Studio', path: `${basePath}/analytics` },
-        { icon: Lightbulb, label: 'Optimization Studio', path: `${basePath}/optimization` },
-        { icon: TrendingUp, label: 'Trend Studio', path: `${basePath}/trends` },
+        { icon: Palette, label: t('Brand Studio'), path: `${basePath}/brand` },
+        { icon: Users, label: t('Audience Studio'), path: `${basePath}/audience` },
+        { icon: Megaphone, label: t('Campaign Studio'), path: `${basePath}/campaigns` },
+        { icon: FileText, label: t('Content Studio'), path: `${basePath}/content` },
+        { icon: Send, label: t('Publisher Studio'), path: `${basePath}/publisher` },
+        { icon: BarChart3, label: t('Analytics Studio'), path: `${basePath}/analytics` },
+        { icon: Lightbulb, label: t('Optimization Studio'), path: `${basePath}/optimization` },
+        { icon: TrendingUp, label: t('Trend Studio'), path: `${basePath}/trends` },
       ],
     },
     {
-      title: 'CREATIVE',
+      title: t('CREATIVE'),
       items: [
-        { icon: UserCircle, label: 'Character Studio', path: `${basePath}/characters` },
-        { icon: Image, label: 'Asset Studio', path: `${basePath}/library` },
-        { icon: Package, label: 'Brand Assets', path: `${basePath}/brand-assets` },
+        { icon: UserCircle, label: t('Character Studio'), path: `${basePath}/characters` },
+        { icon: Image, label: t('Asset Studio'), path: `${basePath}/library` },
+        { icon: Package, label: t('Brand Assets'), path: `${basePath}/brand-assets` },
       ],
     },
   ];
@@ -142,7 +145,7 @@ export function AppSidebar() {
       <div className="border-t border-border-subtle p-2 space-y-1">
         <Link
           to={`${basePath}/settings`}
-          title="Settings"
+          title={t('Settings')}
           className={clsx(
             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-muted hover:text-white hover:bg-white/5 transition-all',
             collapsed && 'justify-center px-2',
@@ -150,7 +153,7 @@ export function AppSidebar() {
           )}
         >
           <Settings className="w-[18px] h-[18px] shrink-0" />
-          {!collapsed && <span>Settings</span>}
+          {!collapsed && <span>{t('Settings')}</span>}
         </Link>
 
         <button
@@ -161,7 +164,7 @@ export function AppSidebar() {
           )}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          {!collapsed && <span className="text-xs">Collapse</span>}
+          {!collapsed && <span className="text-xs">{t('Collapse')}</span>}
         </button>
       </div>
     </aside>

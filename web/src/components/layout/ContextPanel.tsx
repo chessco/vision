@@ -1,13 +1,16 @@
 // ─── Context Panel ───────────────────────────────────────────────
 // Right panel showing contextual information based on current route.
 
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import axios from 'axios';
+import { toApiTenantId } from '../../lib/api';
 import {
   PanelRightClose, PanelRightOpen, Brain, Sparkles,
-  Target, Image, TrendingUp, Clock, Users,
+  Target, Image, TrendingUp, Clock, Users, Palette,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ContextItem {
   icon: typeof Brain;
@@ -17,8 +20,105 @@ interface ContextItem {
 }
 
 export function ContextPanel() {
-  const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { tenantId } = useParams<{ tenantId: string }>();
+  const apiTenantId = tenantId ? toApiTenantId(tenantId) : 'DEFAULT_TENANT';
+  
+  const [assets, setAssets] = useState<any[]>([]);
+  const [activeBrand, setActiveBrand] = useState<any>(null);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [activeCampaign, setActiveCampaign] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      const mockAssets = [
+        { id: '1', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400&q=80', title: 'Asset 1' },
+        { id: '2', url: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=400&q=80', title: 'Asset 2' },
+        { id: '3', url: 'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=400&q=80', title: 'Asset 3' },
+        { id: '4', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=400&q=80', title: 'Asset 4' },
+      ];
+      const mockBrands = [
+        { id: 'b1', name: 'AAA Abogados' },
+        { id: 'b2', name: 'TechNova Solutions' }
+      ];
+      const mockCampaigns = [
+        { id: '1', brandId: 'b1', name: 'Lanzamiento de Verano' },
+        { id: '2', brandId: 'b1', name: 'Q3 Brand Awareness' },
+        { id: '3', brandId: 'b2', name: 'Promoción Black Friday' }
+      ];
+
+      // Temporary mock brands implementation since we don't have a direct endpoint in Vision yet
+      setBrands(mockBrands);
+      if (!activeBrand) setActiveBrand(mockBrands[0]);
+
+      axios.get(`/api/tenants/${apiTenantId}/assets`)
+        .then(res => {
+          if (res.data && res.data.length > 0) setAssets(res.data);
+          else setAssets(mockAssets);
+        })
+        .catch(err => {
+          console.error('Failed to load assets', err);
+          setAssets(mockAssets);
+        });
+        
+      axios.get(`/api/tenants/${apiTenantId}/campaigns`)
+        .then(res => {
+          setCampaigns(res.data || []);
+        })
+        .catch(err => {
+          console.error('Failed to load campaigns', err);
+          setCampaigns([]);
+        });
+    }
+  }, [apiTenantId, open]); // Only depend on open and apiTenantId to fetch initially
+
+  // Filter campaigns whenever campaigns or activeBrand changes
+  const [filteredCampaigns, setFilteredCampaigns] = useState<any[]>([]);
+  
+  useEffect(() => {
+    if (activeBrand) {
+      localStorage.setItem('pitaya_vision_active_brand', activeBrand.id);
+    } else {
+      localStorage.removeItem('pitaya_vision_active_brand');
+    }
+    if (activeBrand && campaigns.length > 0) {
+      // Mock logic: filter by brandId if it exists, else just show all for now
+      const filtered = campaigns.filter(c => !c.brandId || c.brandId === activeBrand.id);
+      setFilteredCampaigns(filtered);
+      
+      // Reset active campaign if it doesn't belong to the new brand
+      if (!activeCampaign || (activeCampaign.brandId && activeCampaign.brandId !== activeBrand.id)) {
+        setActiveCampaign(filtered.length > 0 ? filtered[0] : null);
+      }
+    } else {
+      setFilteredCampaigns([]);
+      setActiveCampaign(null);
+    }
+  }, [activeBrand, campaigns]);
+
+  useEffect(() => {
+    const handleCampaignCreated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const newCampaign = customEvent.detail;
+      setCampaigns(prev => [...prev, newCampaign]);
+      setActiveCampaign(newCampaign);
+    };
+
+    window.addEventListener('campaign-created', handleCampaignCreated);
+    return () => window.removeEventListener('campaign-created', handleCampaignCreated);
+  }, []);
+
+  const handleSuggestionClick = (suggestion: string) => {
+    if (location.pathname.endsWith('/chat')) {
+      window.dispatchEvent(new CustomEvent('send-chat-message', { detail: suggestion }));
+    } else {
+      navigate(`/${tenantId || 'default'}/chat`, { state: { initialPrompt: suggestion } });
+    }
+  };
 
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const currentPage = pathSegments[pathSegments.length - 1] || 'dashboard';
@@ -26,31 +126,32 @@ export function ContextPanel() {
   // Context items based on current page
   const getContextItems = (): ContextItem[] => {
     const base: ContextItem[] = [
-      { icon: Brain, label: 'Active Agent', value: 'Creative Director', color: 'text-primary' },
-      { icon: Target, label: 'Active Campaign', value: 'Q3 Brand Awareness', color: 'text-secondary' },
+      { icon: Brain, label: t('Active Agent'), value: t('Creative Director'), color: 'text-primary' },
+      { icon: Palette, label: t('Active Brand'), value: activeBrand ? activeBrand.name : t('None'), color: 'text-pink-400' },
+      { icon: Target, label: t('Active Campaign'), value: activeCampaign ? activeCampaign.name : t('None'), color: 'text-secondary' },
     ];
 
     if (currentPage === 'chat') {
       return [
         ...base,
-        { icon: Users, label: 'Brand Memory', value: '12 entries' },
-        { icon: Users, label: 'Audience Memory', value: '8 insights' },
+        { icon: Users, label: t('Brand Memory'), value: `12 ${t('entries')}` },
+        { icon: Users, label: t('Audience Memory'), value: `8 ${t('insights')}` },
       ];
     }
     if (currentPage === 'publisher' || currentPage === 'content') {
       return [
         ...base,
-        { icon: Clock, label: 'Scheduled', value: '5 posts' },
-        { icon: TrendingUp, label: 'Best Time', value: '9-11 AM' },
+        { icon: Clock, label: t('Scheduled'), value: `5 ${t('posts')}` },
+        { icon: TrendingUp, label: t('Best Time'), value: '9-11 AM' },
       ];
     }
     return base;
   };
 
   const suggestions = [
-    'Create a storytelling post about company values',
-    'Schedule a behind-the-scenes reel for Thursday',
-    'A/B test your CTA with the word "discover"',
+    t('Create a storytelling post about company values'),
+    t('Schedule a behind-the-scenes reel for Thursday'),
+    t('A/B test your CTA with the word "discover"'),
   ];
 
   if (!open) {
@@ -72,7 +173,7 @@ export function ContextPanel() {
     )}>
       {/* Header */}
       <div className="h-14 flex items-center justify-between px-4 border-b border-border-subtle">
-        <span className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">Context</span>
+        <span className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">{t('Context')}</span>
         <button
           onClick={() => setOpen(false)}
           className="p-1.5 rounded-md hover:bg-white/5 text-ink-muted hover:text-white transition-colors"
@@ -88,9 +189,34 @@ export function ContextPanel() {
           {getContextItems().map((item, i) => (
             <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/3 border border-white/5">
               <item.icon className={clsx('w-4 h-4 shrink-0', item.color || 'text-ink-muted')} />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] text-ink-muted uppercase tracking-wider">{item.label}</p>
-                <p className="text-xs text-white font-medium truncate">{item.value}</p>
+                {item.label === t('Active Brand') ? (
+                  <select
+                    className="text-xs text-white font-medium bg-transparent border-none p-0 focus:ring-0 w-full cursor-pointer outline-none truncate"
+                    value={activeBrand?.id || ''}
+                    onChange={(e) => setActiveBrand(brands.find(b => b.id === e.target.value))}
+                  >
+                    {brands.map(b => (
+                      <option key={b.id} value={b.id} className="bg-[#0d0b14]">{b.name}</option>
+                    ))}
+                  </select>
+                ) : item.label === t('Active Campaign') ? (
+                  <select
+                    className="text-xs text-white font-medium bg-transparent border-none p-0 focus:ring-0 w-full cursor-pointer outline-none truncate"
+                    value={activeCampaign?.id || ''}
+                    onChange={(e) => setActiveCampaign(filteredCampaigns.find(c => c.id === e.target.value))}
+                  >
+                    {filteredCampaigns.length === 0 && (
+                      <option value="" className="bg-[#0d0b14]">{t('No campaigns')}</option>
+                    )}
+                    {filteredCampaigns.map(c => (
+                      <option key={c.id} value={c.id} className="bg-[#0d0b14]">{c.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-white font-medium truncate">{item.value}</p>
+                )}
               </div>
             </div>
           ))}
@@ -100,12 +226,13 @@ export function ContextPanel() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">AI Suggestions</span>
+            <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">{t('AI Suggestions')}</span>
           </div>
           <div className="space-y-2">
             {suggestions.map((suggestion, i) => (
               <button
                 key={i}
+                onClick={() => handleSuggestionClick(suggestion)}
                 className="w-full text-left p-2.5 rounded-lg bg-primary/5 border border-primary/10 hover:border-primary/30 text-xs text-ink-muted hover:text-white transition-all"
               >
                 {suggestion}
@@ -118,14 +245,22 @@ export function ContextPanel() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Image className="w-3.5 h-3.5 text-ink-muted" />
-            <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">Recent Assets</span>
+            <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">{t('Recent Assets')}</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="aspect-square rounded-md bg-white/5 border border-white/5 flex items-center justify-center">
-                <Image className="w-4 h-4 text-ink-muted/30" />
-              </div>
-            ))}
+            {assets.length > 0 ? (
+              assets.slice(0, 6).map((asset) => (
+                <div key={asset.id} className="aspect-square rounded-md bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden">
+                  <img src={asset.url} alt={asset.title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" title={asset.title} />
+                </div>
+              ))
+            ) : (
+              [1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-square rounded-md bg-white/5 border border-white/5 flex items-center justify-center">
+                  <Image className="w-4 h-4 text-ink-muted/30" />
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -133,19 +268,19 @@ export function ContextPanel() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">Performance</span>
+            <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">{t('Performance')}</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-ink-muted">Engagement Rate</span>
+              <span className="text-ink-muted">{t('Engagement Rate')}</span>
               <span className="text-emerald-400 font-medium">8.4%</span>
             </div>
             <div className="flex justify-between items-center text-xs">
-              <span className="text-ink-muted">Avg. Reach</span>
+              <span className="text-ink-muted">{t('Avg. Reach')}</span>
               <span className="text-white font-medium">12.4K</span>
             </div>
             <div className="flex justify-between items-center text-xs">
-              <span className="text-ink-muted">Best Channel</span>
+              <span className="text-ink-muted">{t('Best Channel')}</span>
               <span className="text-blue-400 font-medium">Facebook</span>
             </div>
           </div>

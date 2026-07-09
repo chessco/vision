@@ -5,12 +5,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Brain, Sparkles, Clock, Settings, } from 'lucide-react';
+import { Brain, Sparkles, Clock, Settings, X } from 'lucide-react';
 import { AgentPipeline } from '../components/AgentPipeline';
 import { ChatMessageBubble } from '../components/ChatMessageBubble';
 import { ChatInput } from '../components/ChatInput';
 import { toApiTenantId } from '../../../lib/api';
 import type { AgentStep } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 interface Message {
   id: string;
@@ -20,6 +21,7 @@ interface Message {
 }
 
 export function CreativeChatPage() {
+  const { t } = useTranslation();
   const { tenantId } = useParams<{ tenantId: string }>();
   const apiTenantId = toApiTenantId(tenantId!);
   const location = useLocation();
@@ -30,7 +32,61 @@ export function CreativeChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  const updateSessionId = (id: string | null) => {
+    setCurrentSessionId(id);
+    currentSessionIdRef.current = id;
+  };
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Listen to CustomEvent from ContextPanel
+  useEffect(() => {
+    const handleCustomMessage = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        handleSendMessage(customEvent.detail);
+      }
+    };
+    window.addEventListener('send-chat-message', handleCustomMessage);
+    return () => window.removeEventListener('send-chat-message', handleCustomMessage);
+  }, []);
+
+  // Fetch history when panel opens
+  useEffect(() => {
+    if (isHistoryOpen) {
+      axios.get(`/api/tenants/${apiTenantId}/chat-sessions`)
+        .then(res => setSessions(res.data))
+        .catch(err => console.error('Failed to load sessions', err));
+    }
+  }, [isHistoryOpen, apiTenantId]);
+
+  const handleLoadSession = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      const res = await axios.get(`/api/tenants/${apiTenantId}/chat-sessions/${sessionId}/messages`);
+      const mappedMessages = res.data.map((m: any) => ({
+        id: m.id,
+        role: m.sender === 'ai' ? 'assistant' : 'user',
+        content: m.text,
+        metadata: {
+           assetUrl: m.bannerUrl,
+           suggestedActions: m.suggestedCopy ? ['Proceed to Publish'] : []
+        }
+      }));
+      setMessages(mappedMessages);
+      updateSessionId(sessionId);
+      setIsHistoryOpen(false);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Initialize with initial prompt if provided
   useEffect(() => {
@@ -57,10 +113,19 @@ export function CreativeChatPage() {
     ]);
 
     try {
-      // PitayaCore AI integration endpoint (proxied to port 3016 -> pitayacore)
-      const res = await axios.post(`/api/tenants/${apiTenantId}/chat-sessions/current/messages`, {
+      // PitayaCore AI integration endpoint
+      const sessionId = currentSessionIdRef.current;
+      const endpoint = sessionId 
+        ? `/api/tenants/${apiTenantId}/chat-sessions/${sessionId}/messages` 
+        : `/api/tenants/${apiTenantId}/chat-sessions/current/messages`;
+      
+      const res = await axios.post(endpoint, {
         text: text,
       });
+
+      if (!sessionId && res.data?.userMessage?.sessionId) {
+        updateSessionId(res.data.userMessage.sessionId);
+      }
 
       // Update pipeline as done
       setPipelineSteps([
@@ -88,11 +153,18 @@ export function CreativeChatPage() {
           const parsed = JSON.parse(jsonMatch[0]);
           aiMessage.metadata = { ...aiMessage.metadata, ...parsed };
           finalContent = finalContent.replace(jsonMatch[0], '').trim();
-          aiMessage.content = finalContent;
         }
       } catch (e) {
         // Ignore JSON parse errors
       }
+
+      // Auto-format common section headers if they lack newlines
+      finalContent = finalContent.replace(/(Estrategia:|Oferta:|Segmentación:|Público Objetivo Principal:|Público Objetivo Secundario:|Concepto Creativo:|Tagline:|Anuncios \(3 anuncios\):|Anuncio \d+:|Copy:|Visual:)/g, '\n\n**$1**\n');
+      
+      // Basic markdown to HTML (bold)
+      finalContent = finalContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      aiMessage.content = finalContent.trim();
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (err) {
@@ -105,9 +177,9 @@ export function CreativeChatPage() {
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           role: 'assistant',
-          content: "I'm currently running in demo mode. The backend API is not fully connected, but I understand you want to create something amazing.",
+          content: t("I'm currently running in demo mode. The backend API is not fully connected, but I understand you want to create something amazing."),
           metadata: {
-            suggestedActions: ["Try again", "View Dashboard", "Configure API"]
+            suggestedActions: [t("Try again"), t("View Dashboard"), t("Configure API")]
           }
         }]);
       }, 1500);
@@ -117,9 +189,36 @@ export function CreativeChatPage() {
   };
 
   return (
-    <div className="flex h-full animate-fade-in">
+    <div className="flex h-full animate-fade-in relative overflow-hidden">
+      {/* History Panel Overlay */}
+      {isHistoryOpen && (
+        <div className="absolute inset-y-0 left-0 w-80 bg-[#0d0b14]/95 backdrop-blur-xl border-r border-border-subtle z-50 animate-in slide-in-from-left duration-200 flex flex-col shadow-2xl">
+          <div className="h-14 flex items-center justify-between px-4 border-b border-border-subtle shrink-0">
+            <h2 className="text-sm font-headings font-bold text-white">{t('Historial de Sesiones')}</h2>
+            <button onClick={() => setIsHistoryOpen(false)} className="p-1.5 rounded-md hover:bg-white/5 text-ink-muted">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {sessions.map(s => (
+              <button 
+                key={s.id} 
+                onClick={() => handleLoadSession(s.id)}
+                className="w-full text-left p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors"
+              >
+                <p className="text-sm text-white font-medium truncate">{s.title || t('Nueva Campaña')}</p>
+                <p className="text-[10px] text-ink-muted mt-1">{new Date(s.createdAt).toLocaleDateString()}</p>
+              </button>
+            ))}
+            {sessions.length === 0 && (
+              <p className="text-xs text-ink-muted text-center py-4">{t('No hay historial')}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background relative">
+      <div className="flex-1 flex flex-col min-w-0 bg-background relative z-0">
         {/* Chat Header */}
         <div className="h-14 border-b border-border-subtle px-6 flex items-center justify-between shrink-0 bg-[#0d0b14]/80 backdrop-blur-md z-10">
           <div className="flex items-center gap-3">
@@ -127,16 +226,16 @@ export function CreativeChatPage() {
               <Brain className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h1 className="text-sm font-headings font-bold text-white leading-tight">Creative Director</h1>
+              <h1 className="text-sm font-headings font-bold text-white leading-tight">{t('Creative Director')}</h1>
               <p className="text-[10px] text-ink-muted leading-tight">PitayaCore Orchestration Agent</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-white/5 text-ink-muted hover:text-white transition-colors" title="Session History">
+            <button onClick={() => setIsHistoryOpen(true)} className="p-2 rounded-lg hover:bg-white/5 text-ink-muted hover:text-white transition-colors" title={t("Session History")}>
               <Clock className="w-4 h-4" />
             </button>
-            <button className="p-2 rounded-lg hover:bg-white/5 text-ink-muted hover:text-white transition-colors" title="Settings">
+            <button className="p-2 rounded-lg hover:bg-white/5 text-ink-muted hover:text-white transition-colors" title={t("Settings")}>
               <Settings className="w-4 h-4" />
             </button>
           </div>
@@ -157,18 +256,18 @@ export function CreativeChatPage() {
                 <Sparkles className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-headings font-light tracking-wide text-white mb-3">
-                How can I help you create today?
+                {t('How can I help you create today?')}
               </h2>
               <p className="text-sm text-ink-muted mb-8">
-                I'm your AI Creative Director. I can help you plan campaigns, design brand assets, write copy, and orchestrate publishing across platforms.
+                {t("I'm your AI Creative Director. I can help you plan campaigns, design brand assets, write copy, and orchestrate publishing across platforms.")}
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                 {[
-                  'Plan a Q3 awareness campaign',
-                  'Design a logo for AAA Abogados',
-                  'Write 5 Facebook posts about AI',
-                  'Analyze my current audience'
+                  t('Plan a Q3 awareness campaign'),
+                  t('Design a logo for AAA Abogados'),
+                  t('Write 5 Facebook posts about AI'),
+                  t('Analyze my current audience')
                 ].map((suggestion, i) => (
                   <button 
                     key={i}
@@ -182,9 +281,73 @@ export function CreativeChatPage() {
             </div>
           ) : (
             <div className="space-y-6 pb-4">
-              {messages.map(msg => (
-                <ChatMessageBubble key={msg.id} message={msg} />
-              ))}
+              {messages.map((msg, idx) => {
+                let lastUserMsg = '';
+                if (msg.role === 'assistant') {
+                  for (let i = idx - 1; i >= 0; i--) {
+                    if (messages[i].role === 'user') {
+                      lastUserMsg = messages[i].content;
+                      break;
+                    }
+                  }
+                }
+                return (
+                  <ChatMessageBubble 
+                    key={msg.id} 
+                    message={msg} 
+                    onRegenerate={msg.role === 'assistant' && lastUserMsg ? () => handleSendMessage(lastUserMsg) : undefined}
+                    onApprove={async () => {
+                      const activeBrandId = localStorage.getItem('pitaya_vision_active_brand');
+                      if (currentSessionIdRef.current) {
+                        try {
+                          const res = await axios.post(`/api/tenants/${apiTenantId}/chat-sessions/${currentSessionIdRef.current}/approve`, {
+                            characterId: activeBrandId
+                          });
+                          if (res.data && res.data.campaign) {
+                            window.dispatchEvent(new CustomEvent('campaign-created', { detail: res.data.campaign }));
+                          }
+                        } catch(err) {
+                          console.error('Failed to approve campaign', err);
+                        }
+                      }
+
+                      setPipelineSteps(prev => {
+                        const newSteps = [...prev];
+                        if (!newSteps.find(s => s.agent === 'compliance')) {
+                          newSteps.push({ id: '4', agent: 'compliance', label: 'Compliance', status: 'done' });
+                        }
+                        if (!newSteps.find(s => s.agent === 'publisher')) {
+                          newSteps.push({ id: '5', agent: 'publisher', label: 'Publish', status: 'pending' });
+                        }
+                        return newSteps;
+                      });
+                      
+                      // Add suggested action to publish
+                      setMessages(currentMsgs => {
+                        const newMsgs = [...currentMsgs];
+                        const lastMsg = newMsgs[newMsgs.length - 1];
+                        if (lastMsg && lastMsg.role === 'assistant') {
+                          lastMsg.metadata = {
+                            ...lastMsg.metadata,
+                            suggestedActions: [...(lastMsg.metadata?.suggestedActions || []), 'Proceed to Publish']
+                          };
+                        }
+                        return newMsgs;
+                      });
+                      
+                      alert(t('Asset approved! Passed compliance and ready to publish.'));
+                    }}
+                    onActionClick={(action) => {
+                      if (action === 'Proceed to Publish') {
+                        setPipelineSteps(prev => prev.map(s => s.agent === 'publisher' ? { ...s, status: 'done' } : s));
+                        alert(t('Content published successfully!'));
+                      } else {
+                        handleSendMessage(action);
+                      }
+                    }}
+                  />
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -195,7 +358,7 @@ export function CreativeChatPage() {
           <div className="max-w-4xl mx-auto">
             <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
             <p className="text-center text-[10px] text-ink-muted/50 mt-2">
-              Vision connects to PitayaCore for remote agent orchestration. AI models may occasionally produce unexpected results.
+              {t('Vision connects to PitayaCore for remote agent orchestration. AI models may occasionally produce unexpected results.')}
             </p>
           </div>
         </div>

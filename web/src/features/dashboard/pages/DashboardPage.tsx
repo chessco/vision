@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardData {
   recentAssets: { id: string; name: string; url: string; type: string; createdAt: string }[];
@@ -22,13 +23,13 @@ interface DashboardData {
   stats: { totalAssets: number; totalCampaigns: number; totalCharacters: number; totalSessions: number };
 }
 
-const QUICK_ACTIONS = [
-  { icon: MessageSquare, label: 'Creative Chat', desc: 'Chat with AI agents', path: 'chat', color: 'from-violet-500/20 to-purple-500/20 border-violet-500/20', iconColor: 'text-violet-400' },
-  { icon: Megaphone, label: 'New Campaign', desc: 'Launch a campaign', path: 'campaigns', color: 'from-orange-500/20 to-amber-500/20 border-orange-500/20', iconColor: 'text-orange-400' },
-  { icon: FileText, label: 'Create Content', desc: 'AI content production', path: 'content', color: 'from-blue-500/20 to-cyan-500/20 border-blue-500/20', iconColor: 'text-blue-400' },
-  { icon: Send, label: 'Publish', desc: 'Schedule & publish', path: 'publisher', color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/20', iconColor: 'text-emerald-400' },
-  { icon: UserCircle, label: 'Characters', desc: 'AI character studio', path: 'characters', color: 'from-pink-500/20 to-rose-500/20 border-pink-500/20', iconColor: 'text-pink-400' },
-  { icon: BarChart3, label: 'Analytics', desc: 'Performance insights', path: 'analytics', color: 'from-cyan-500/20 to-sky-500/20 border-cyan-500/20', iconColor: 'text-cyan-400' },
+const getQuickActions = (t: any) => [
+  { icon: MessageSquare, label: t('Creative Chat'), desc: t('Chat with AI agents'), path: 'chat', color: 'from-violet-500/20 to-purple-500/20 border-violet-500/20', iconColor: 'text-violet-400' },
+  { icon: Megaphone, label: t('New Campaign'), desc: t('Launch a campaign'), path: 'campaigns', color: 'from-orange-500/20 to-amber-500/20 border-orange-500/20', iconColor: 'text-orange-400' },
+  { icon: FileText, label: t('Create Content'), desc: t('AI content production'), path: 'content', color: 'from-blue-500/20 to-cyan-500/20 border-blue-500/20', iconColor: 'text-blue-400' },
+  { icon: Send, label: t('Publish'), desc: t('Schedule & publish'), path: 'publisher', color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/20', iconColor: 'text-emerald-400' },
+  { icon: UserCircle, label: t('Characters'), desc: t('AI character studio'), path: 'characters', color: 'from-pink-500/20 to-rose-500/20 border-pink-500/20', iconColor: 'text-pink-400' },
+  { icon: BarChart3, label: t('Analytics'), desc: t('Performance insights'), path: 'analytics', color: 'from-cyan-500/20 to-sky-500/20 border-cyan-500/20', iconColor: 'text-cyan-400' },
 ];
 
 export function DashboardPage() {
@@ -39,6 +40,9 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState('');
   const promptRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
+
+  const QUICK_ACTIONS = getQuickActions(t);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -64,9 +68,9 @@ export function DashboardPage() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('Good morning');
+    if (hour < 18) return t('Good afternoon');
+    return t('Good evening');
   };
 
   const metrics = MOCK_ANALYTICS_METRICS;
@@ -82,7 +86,7 @@ export function DashboardPage() {
             <Sparkles className="w-8 h-8 text-primary animate-pulse" />
             <div className="absolute -inset-2 bg-primary/20 rounded-full blur-lg animate-pulse" />
           </div>
-          <div className="text-ink-muted font-medium text-sm">Loading your creative workspace...</div>
+          <div className="text-ink-muted font-medium text-sm">{t('Loading your creative workspace...')}</div>
         </div>
       </div>
     );
@@ -98,7 +102,7 @@ export function DashboardPage() {
             <h1 className="text-3xl md:text-4xl font-headings font-light tracking-wide text-white animate-fade-in">
               {getGreeting()}, Francisco
             </h1>
-            <p className="text-sm text-ink-muted font-light">What would you like to create today?</p>
+            <p className="text-sm text-ink-muted font-light">{t('What would you like to create today?')}</p>
 
             {/* Main Prompt Input */}
             <div className="max-w-2xl mx-auto mt-6">
@@ -111,11 +115,11 @@ export function DashboardPage() {
                     value={prompt}
                     onChange={e => setPrompt(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                    placeholder="Describe what you want to create..."
+                    placeholder={t('Describe what you want to create...')}
                     className="flex-1 bg-transparent px-5 py-3.5 text-white placeholder:text-ink-muted/50 focus:outline-none text-sm"
                   />
                   <button onClick={handleCreate} className="m-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg flex items-center gap-2 transition-all">
-                    <Sparkles className="w-4 h-4" /> Create
+                    <Sparkles className="w-4 h-4" /> {t('Create')}
                   </button>
                 </div>
               </div>
@@ -128,10 +132,10 @@ export function DashboardPage() {
         {/* KPI Metrics */}
         <section className="animate-slide-up">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <MetricCard label="Reach" value="124.5K" change={12.4} trend="up" sparkline={metrics[0].sparkline} />
-            <MetricCard label="Published" value={data?.stats?.totalAssets || 0} change={8.7} trend="up" />
-            <MetricCard label="Campaigns" value={data?.stats?.totalCampaigns || 0} icon={Megaphone} />
-            <MetricCard label="Characters" value={data?.stats?.totalCharacters || 0} icon={UserCircle} />
+            <MetricCard label={t('Reach')} value="124.5K" change={12.4} trend="up" sparkline={metrics[0].sparkline} />
+            <MetricCard label={t('Published')} value={data?.stats?.totalAssets || 0} change={8.7} trend="up" />
+            <MetricCard label={t('Campaigns')} value={data?.stats?.totalCampaigns || 0} icon={Megaphone} />
+            <MetricCard label={t('Characters')} value={data?.stats?.totalCharacters || 0} icon={UserCircle} />
           </div>
         </section>
 
@@ -165,10 +169,10 @@ export function DashboardPage() {
             <GlassPanel className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider flex items-center gap-2">
-                  <Calendar className="w-4 h-4" /> Upcoming Publications
+                  <Calendar className="w-4 h-4" /> {t('Upcoming Publications')}
                 </h2>
                 <Link to={`/t/${tenantId}/visual/publisher`} className="text-[10px] text-primary hover:text-secondary transition-colors flex items-center gap-1">
-                  View All <ArrowRight className="w-3 h-3" />
+                  {t('View All')} <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="space-y-2">
@@ -177,7 +181,7 @@ export function DashboardPage() {
                     <PlatformBadge platform={event.platform} showLabel={false} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-white font-medium truncate">{event.title}</p>
-                      <p className="text-[10px] text-ink-muted">{format(new Date(event.date), 'MMM d')} at {event.time}</p>
+                      <p className="text-[10px] text-ink-muted">{format(new Date(event.date), 'MMM d')} {t('at')} {event.time}</p>
                     </div>
                     <StatusBadge status={event.status} />
                   </div>
@@ -190,7 +194,7 @@ export function DashboardPage() {
               <GlassPanel className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider flex items-center gap-2">
-                    <Clock className="w-4 h-4" /> Recent Activity
+                    <Clock className="w-4 h-4" /> {t('Recent Activity')}
                   </h2>
                 </div>
                 <div className="space-y-2">
@@ -214,7 +218,7 @@ export function DashboardPage() {
             <GlassPanel className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Lightbulb className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider">AI Recommendations</h2>
+                <h2 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider">{t('AI Recommendations')}</h2>
               </div>
               <div className="space-y-2">
                 {insights.slice(0, 3).map(insight => (
@@ -236,10 +240,10 @@ export function DashboardPage() {
             <GlassPanel className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" /> Trending
+                  <TrendingUp className="w-4 h-4" /> {t('Trending')}
                 </h2>
                 <Link to={`/t/${tenantId}/visual/trends`} className="text-[10px] text-primary hover:text-secondary transition-colors flex items-center gap-1">
-                  View All <ArrowRight className="w-3 h-3" />
+                  {t('View All')} <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="space-y-2">
@@ -267,10 +271,10 @@ export function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-labels font-semibold text-ink-muted uppercase tracking-wider flex items-center gap-2">
-                <ImageIcon className="w-4 h-4" /> Recent Assets
+                <ImageIcon className="w-4 h-4" /> {t('Recent Assets')}
               </h2>
               <Link to={`/t/${tenantId}/visual/library`} className="text-[10px] text-primary hover:text-secondary transition-colors flex items-center gap-1">
-                View All <ArrowRight className="w-3 h-3" />
+                {t('View All')} <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">

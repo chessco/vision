@@ -65,8 +65,33 @@ export class ChatService {
   }
 
   async createSession(tenantId: string, title: string) {
+    let pitayaCoreId: string | undefined = undefined;
+    try {
+      const res = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': PITAYACORE_API_KEY,
+          'x-user-role': 'ADMIN',
+          'x-tenant-id': tenantId,
+        },
+        body: JSON.stringify({ title }),
+      });
+      if (res.ok) {
+        const pitayaSession = await res.json();
+        if (pitayaSession && pitayaSession.id) {
+          pitayaCoreId = pitayaSession.id;
+        }
+      } else {
+        this.logger.warn(`Failed to create PitayaCore session: ${res.status}`);
+      }
+    } catch (e) {
+      this.logger.error('Error creating PitayaCore session', e);
+    }
+
     return this.db.mysql.chatSession.create({
       data: {
+        ...(pitayaCoreId ? { id: pitayaCoreId } : {}),
         tenantId,
         title,
       },
@@ -117,10 +142,20 @@ export class ChatService {
     });
   }
 
-  async postMessage(sessionId: string, text: string) {
-    const session = await this.db.mysql.chatSession.findUnique({
-      where: { id: sessionId },
-    });
+  async postMessage(sessionId: string, text: string, tenantId?: string) {
+    let session;
+    
+    if (sessionId === 'current') {
+      if (!tenantId) {
+        throw new NotFoundException('tenantId is required for current session');
+      }
+      session = await this.createSession(tenantId, 'Nuevo Chat Creativo');
+      sessionId = session.id;
+    } else {
+      session = await this.db.mysql.chatSession.findUnique({
+        where: { id: sessionId },
+      });
+    }
 
     if (!session) {
       throw new NotFoundException('Chat session not found');
@@ -154,7 +189,7 @@ export class ChatService {
       this.logger.log(`Calling PitayaCore remote for AI pipeline: ${text}`);
 
       // Call PitayaCore's chat endpoint which handles everything (strategy + image generation)
-      const pitayaResult = await this.callPitayaCoreChat(session.tenantId, text);
+      const pitayaResult = await this.callPitayaCoreChat(session.tenantId, sessionId, text);
 
       this.logger.log('Vision API saving message with:', {
         suggestedCopy: pitayaResult.suggestedCopy?.substring(0, 50) + '...',
@@ -162,7 +197,7 @@ export class ChatService {
         bannerUrl: pitayaResult.bannerUrl,
       });
 
-      const completedSteps = [
+      const completedSteps = pitayaResult.steps?.length > 0 ? pitayaResult.steps : [
         { label: 'Analizando solicitud con Director Creativo IA', status: 'done' },
         { label: 'Generando estrategia completa de campaña', status: 'done' },
         { label: 'Optimizando prompt visual para FLUX', status: 'done' },
@@ -194,29 +229,9 @@ export class ChatService {
     }
   }
 
-  private async callPitayaCoreChat(tenantId: string, message: string): Promise<any> {
-    // First, create a session in PitayaCore
-    const sessionRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': PITAYACORE_API_KEY,
-        'x-user-role': 'ADMIN',
-        'x-tenant-id': tenantId,
-      },
-      body: JSON.stringify({ title: 'Vision API Chat' }),
-    });
-
-    if (!sessionRes.ok) {
-      const errText = await sessionRes.text().catch(() => '');
-      throw new Error(`PitayaCore session creation failed ${sessionRes.status}: ${errText}`);
-    }
-
-    const sessionData = await sessionRes.json();
-    const pitayaSessionId = sessionData.id;
-
-    // Then, send the message to get the full pipeline result
-    const messageRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${pitayaSessionId}/messages`, {
+  private async callPitayaCoreChat(tenantId: string, sessionId: string, message: string): Promise<any> {
+    // Send the message to PitayaCore's chat-sessions endpoint which handles strategy and image generation
+    let messageRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${sessionId}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -228,23 +243,56 @@ export class ChatService {
     });
 
     if (!messageRes.ok) {
-      const errText = await messageRes.text().catch(() => '');
-      throw new Error(`PitayaCore message failed ${messageRes.status}: ${errText}`);
+      if (messageRes.status === 404) {
+        this.logger.warn(`Session ${sessionId} not found in PitayaCore. Creating a temporary session...`);
+        const createRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': PITAYACORE_API_KEY,
+            'x-user-role': 'ADMIN',
+            'x-tenant-id': tenantId,
+          },
+          body: JSON.stringify({ title: 'Imported Session' }),
+        });
+        if (createRes.ok) {
+          const newSession = await createRes.json();
+          if (newSession && newSession.id) {
+            // Retry with the new ID
+            messageRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${newSession.id}/messages`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': PITAYACORE_API_KEY,
+                'x-user-role': 'ADMIN',
+                'x-tenant-id': tenantId,
+              },
+              body: JSON.stringify({ text: message }),
+            });
+          }
+        }
+      }
+
+      if (!messageRes.ok) {
+        const errText = await messageRes.text().catch(() => '');
+        throw new Error(`PitayaCore message failed ${messageRes.status}: ${errText}`);
+      }
     }
 
     const result = await messageRes.json();
     
     this.logger.log('PitayaCore response:', JSON.stringify(result, null, 2));
     
-    // Extract the relevant data from PitayaCore's response
+    // Return the structure expected by postMessage (PitayaCore's response format)
     return {
-      content: result.aiMessage?.text || result.aiMessage?.content,
-      suggestedCopy: result.aiMessage?.suggestedCopy,
-      imagePrompt: result.aiMessage?.imagePrompt,
-      bannerTitle: result.aiMessage?.bannerTitle,
-      bannerStyle: result.aiMessage?.bannerStyle,
-      bannerUrl: result.aiMessage?.bannerUrl,
-      technicalDetails: result.aiMessage?.technicalDetails,
+      content: result.aiMessage?.text || 'Estrategia generada.',
+      suggestedCopy: result.aiMessage?.suggestedCopy || null,
+      imagePrompt: result.aiMessage?.imagePrompt || null,
+      bannerTitle: result.aiMessage?.bannerTitle || null,
+      bannerStyle: result.aiMessage?.bannerStyle || 'FLUX Schnell • Fal.ai',
+      bannerUrl: result.aiMessage?.bannerUrl || null,
+      technicalDetails: result.aiMessage?.technicalDetails || null,
+      steps: result.aiMessage?.steps || [],
     };
   }
 
@@ -646,7 +694,7 @@ export class ChatService {
     throw new Error('Video generation timed out after 5 minutes');
   }
 
-  async approveCampaign(sessionId: string) {
+  async approveCampaign(sessionId: string, characterId?: string) {
     const session = await this.db.mysql.chatSession.findUnique({
       where: { id: sessionId },
     });
@@ -671,6 +719,7 @@ export class ChatService {
         name: campaignName,
         objective: lastAiMessage.suggestedCopy || 'Generado vía Creative Chat',
         audience: 'Comunidad general y vecinos',
+        characterId: characterId || null,
         channels: ['Facebook'],
         formats: ['Banner'],
       },

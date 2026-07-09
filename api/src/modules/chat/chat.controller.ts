@@ -26,10 +26,12 @@ export class ChatController {
 
   @Post(':id/messages')
   async postMessage(
+    @Param('tenantId') tenantId: string,
     @Param('id') id: string,
     @Body('text') text: string,
   ) {
-    return this.chatService.postMessage(id, text);
+    const actualTenantId = tenantId === 'default' ? 'DEFAULT_TENANT' : tenantId;
+    return this.chatService.postMessage(id, text, actualTenantId);
   }
 
   @Put(':id')
@@ -46,7 +48,10 @@ export class ChatController {
   }
 
   @Post(':id/approve')
-  async approveCampaign(@Param('id') id: string) {
-    return this.chatService.approveCampaign(id);
+  async approveCampaign(
+    @Param('id') id: string,
+    @Body('characterId') characterId?: string,
+  ) {
+    return this.chatService.approveCampaign(id, characterId);
   }
 }

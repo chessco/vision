@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, Bell, Command, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -27,11 +28,12 @@ export function CommandBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   // Get current page label from route
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const currentPage = pathSegments[pathSegments.length - 1] || 'dashboard';
-  const pageLabel = ROUTE_LABELS[currentPage] || currentPage;
+  const pageLabel = ROUTE_LABELS[currentPage] ? t(ROUTE_LABELS[currentPage]) : currentPage;
 
   // ⌘K shortcut
   useEffect(() => {
@@ -69,7 +71,7 @@ export function CommandBar() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search campaigns, content, assets..."
+              placeholder={t('Search campaigns, content, assets...')}
               className="w-full bg-background border border-primary/30 rounded-lg pl-10 pr-10 py-2 text-sm text-white placeholder:text-ink-muted/50 focus:outline-none focus:border-primary transition-colors"
               autoFocus
             />
@@ -86,7 +88,7 @@ export function CommandBar() {
             className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-border-subtle rounded-lg text-xs text-ink-muted transition-all w-full max-w-xs"
           >
             <Search className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left">Search...</span>
+            <span className="flex-1 text-left">{t('Search...')}</span>
             <kbd className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white/5 rounded text-[10px] font-mono border border-white/10">
               <Command className="w-2.5 h-2.5" />K
             </kbd>

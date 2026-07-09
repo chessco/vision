@@ -5,17 +5,21 @@ import { CheckCircle2, Loader2, Sparkles, Send, Brain, Eye, Search } from 'lucid
 import clsx from 'clsx';
 import type { AgentStep, AgentPipelineStage } from '../../../types';
 
+import { useTranslation } from 'react-i18next';
+
 interface AgentPipelineProps {
   steps: AgentStep[];
 }
 
 export function AgentPipeline({ steps }: AgentPipelineProps) {
+  const { t } = useTranslation();
+  
   const STAGES: { stage: AgentPipelineStage; label: string; icon: any }[] = [
-    { stage: 'creative_director', label: 'Strategy', icon: Brain },
-    { stage: 'copywriter', label: 'Copywriting', icon: Search },
-    { stage: 'designer', label: 'Design', icon: Sparkles },
-    { stage: 'compliance', label: 'Compliance', icon: Eye },
-    { stage: 'publisher', label: 'Publish', icon: Send },
+    { stage: 'creative_director', label: t('Strategy'), icon: Brain },
+    { stage: 'copywriter', label: t('Copywriting'), icon: Search },
+    { stage: 'designer', label: t('Design'), icon: Sparkles },
+    { stage: 'compliance', label: t('Compliance'), icon: Eye },
+    { stage: 'publisher', label: t('Publish'), icon: Send },
   ];
 
   return (
