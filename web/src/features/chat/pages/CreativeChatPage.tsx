@@ -32,13 +32,13 @@ export function CreativeChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
   const currentSessionIdRef = useRef<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
 
   const updateSessionId = (id: string | null) => {
-    setCurrentSessionId(id);
+
     currentSessionIdRef.current = id;
   };
   
@@ -52,9 +52,55 @@ export function CreativeChatPage() {
         handleSendMessage(customEvent.detail);
       }
     };
+
+    const handleActiveCampaignChanged = async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const campaignId = customEvent.detail;
+      if (campaignId) {
+        try {
+          const res = await axios.get(`/api/tenants/${apiTenantId}/chat-sessions`);
+          const sessions = res.data;
+          const sessionForCampaign = sessions.find((s: any) => s.campaignId === campaignId);
+          
+          if (sessionForCampaign) {
+            setIsLoading(true);
+            const msgRes = await axios.get(`/api/tenants/${apiTenantId}/chat-sessions/${sessionForCampaign.id}/messages`);
+            const mappedMessages = msgRes.data.map((m: any) => ({
+              id: m.id,
+              role: m.sender === 'ai' ? 'assistant' : 'user',
+              content: m.text,
+              metadata: {
+                 assetUrl: m.bannerUrl,
+                 suggestedActions: m.suggestedCopy ? ['Proceed to Publish'] : []
+              }
+            }));
+            setMessages(mappedMessages);
+            updateSessionId(sessionForCampaign.id);
+            setPipelineSteps([]);
+          } else {
+            setMessages([]);
+            updateSessionId(null);
+            setPipelineSteps([]);
+          }
+        } catch (err) {
+          console.error('Failed to handle active campaign change', err);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setMessages([]);
+        updateSessionId(null);
+        setPipelineSteps([]);
+      }
+    };
+
     window.addEventListener('send-chat-message', handleCustomMessage);
-    return () => window.removeEventListener('send-chat-message', handleCustomMessage);
-  }, []);
+    window.addEventListener('active-campaign-changed', handleActiveCampaignChanged);
+    return () => {
+      window.removeEventListener('send-chat-message', handleCustomMessage);
+      window.removeEventListener('active-campaign-changed', handleActiveCampaignChanged);
+    };
+  }, [apiTenantId]);
 
   // Fetch history when panel opens
   useEffect(() => {
@@ -119,8 +165,11 @@ export function CreativeChatPage() {
         ? `/api/tenants/${apiTenantId}/chat-sessions/${sessionId}/messages` 
         : `/api/tenants/${apiTenantId}/chat-sessions/current/messages`;
       
+      const activeCampaignId = localStorage.getItem('pitaya_vision_active_campaign');
+
       const res = await axios.post(endpoint, {
         text: text,
+        campaignId: activeCampaignId || undefined,
       });
 
       if (!sessionId && res.data?.userMessage?.sessionId) {
@@ -144,6 +193,11 @@ export function CreativeChatPage() {
         }
       };
       
+      // If an image was generated, trigger an asset update event
+      if (res.data?.aiMessage?.bannerUrl) {
+        window.dispatchEvent(new CustomEvent('assets-updated'));
+      }
+
       // If the message contains JSON metadata block, extract it
       // (This handles the regex extraction defined in the backend requirements)
       let finalContent = aiMessage.content;
@@ -301,7 +355,7 @@ export function CreativeChatPage() {
                       if (currentSessionIdRef.current) {
                         try {
                           const res = await axios.post(`/api/tenants/${apiTenantId}/chat-sessions/${currentSessionIdRef.current}/approve`, {
-                            characterId: activeBrandId
+                            brandId: activeBrandId
                           });
                           if (res.data && res.data.campaign) {
                             window.dispatchEvent(new CustomEvent('campaign-created', { detail: res.data.campaign }));

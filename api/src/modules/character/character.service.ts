@@ -20,22 +20,27 @@ export class CharacterService {
     return character;
   }
 
-  async createCharacter(tenantId: string, data: {
-    name: string;
-    type?: string;
-    industry?: string;
-    vertical?: string;
-    physicalDescription?: string;
-    personality?: string;
-    mission?: string;
-    avatarUrl?: string;
-    referenceImages?: string[];
-    status?: string;
-    description?: string;
-  }) {
+  async createCharacter(
+    tenantId: string,
+    data: {
+      name: string;
+      brandId?: string;
+      type?: string;
+      industry?: string;
+      vertical?: string;
+      physicalDescription?: string;
+      personality?: string;
+      mission?: string;
+      avatarUrl?: string;
+      referenceImages?: string[];
+      status?: string;
+      description?: string;
+    },
+  ) {
     const characterData: any = {
       tenantId,
       name: data.name,
+      brandId: data.brandId || null,
       type: data.type || 'AI Influencer',
       industry: data.industry || '',
       vertical: data.vertical || 'General',

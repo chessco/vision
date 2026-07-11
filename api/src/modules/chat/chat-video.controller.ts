@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ChatService } from './chat.service';
 
 interface VideoGenerationRequest {
@@ -19,7 +27,12 @@ export class ChatVideoController {
 
   @Post('video')
   async generateVideo(@Body() body: VideoGenerationRequest) {
-    if (!body.tenantId || !body.conversationId || !body.imageUrl || !body.prompt) {
+    if (
+      !body.tenantId ||
+      !body.conversationId ||
+      !body.imageUrl ||
+      !body.prompt
+    ) {
       throw new HttpException(
         'Missing required fields: tenantId, conversationId, imageUrl, prompt',
         HttpStatus.BAD_REQUEST,

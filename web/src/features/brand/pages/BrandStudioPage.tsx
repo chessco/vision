@@ -60,16 +60,23 @@ export function BrandStudioPage() {
     }
   };
 
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchBrand = async () => {
       try {
-        const res = await axios.get(`/api/tenants/${apiTenantId}/brand`);
-        if (res.data) {
+        const res = await axios.get(`/api/tenants/${apiTenantId}/brands`);
+        if (res.data && res.data.length > 0) {
+          const savedId = localStorage.getItem('pitaya_vision_active_brand');
+          const current = res.data.find((b: any) => b.id === savedId) || res.data[0];
+          setActiveBrandId(current.id);
           setFormData(prev => ({
             ...prev,
-            primaryColor: res.data.primaryColor || '#8b5cf6',
-            styleGuidelines: res.data.styleGuidelines || '',
-            toneOfVoice: res.data.toneOfVoice || '',
+            name: current.name || '',
+            primaryColor: current.primaryColor || '#8b5cf6',
+            secondaryColor: current.secondaryColor || '#06b6d4',
+            styleGuidelines: current.styleGuidelines || '',
+            toneOfVoice: current.toneOfVoice || '',
           }));
         }
       } catch (err) {
@@ -85,11 +92,25 @@ export function BrandStudioPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await axios.post(`/api/tenants/${apiTenantId}/brand`, {
+      const payload = {
+        name: formData.name,
         primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
         styleGuidelines: formData.styleGuidelines,
         toneOfVoice: formData.toneOfVoice,
-      });
+      };
+
+      if (activeBrandId) {
+        await axios.put(`/api/tenants/${apiTenantId}/brands/${activeBrandId}`, payload);
+      } else {
+        const createRes = await axios.post(`/api/tenants/${apiTenantId}/brands`, payload);
+        if (createRes.data && createRes.data.id) {
+          setActiveBrandId(createRes.data.id);
+          localStorage.setItem('pitaya_vision_active_brand', createRes.data.id);
+        }
+      }
+      
+      window.dispatchEvent(new CustomEvent('brands-updated'));
       alert(t('Cambios guardados correctamente'));
     } catch (err) {
       console.error('Error saving brand:', err);
@@ -97,6 +118,24 @@ export function BrandStudioPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleNewBrand = () => {
+    setActiveBrandId(null);
+    setFormData({
+      name: 'Nueva Marca',
+      primaryColor: '#8b5cf6',
+      secondaryColor: '#06b6d4',
+      accentColor: '#f59e0b',
+      styleGuidelines: '',
+      toneOfVoice: '',
+      brandVoice: '',
+      communicationStyle: '',
+      allowedTerms: '',
+      forbiddenTerms: '',
+      ctaStyle: '',
+      competitors: '',
+    });
   };
 
   const tabs = [
@@ -117,6 +156,13 @@ export function BrandStudioPage() {
         description={t('Define your brand identity, voice, and visual guidelines for AI-powered content generation.')}
         actions={
           <div className="flex gap-2">
+            <button
+              onClick={handleNewBrand}
+              className="bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all text-sm border border-white/10"
+            >
+              <Plus className="w-4 h-4" />
+              {t('Nueva Marca')}
+            </button>
             <button
               onClick={handleAutoFill}
               className="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all text-sm border border-indigo-500/30"

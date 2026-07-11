@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { CombinedAuthGuard } from '../../common/guards/combined-auth.guard';
 import { ChatService } from './chat.service';
 
@@ -14,9 +24,16 @@ export class ChatController {
   }
 
   @Post()
-  async createSession(@Param('tenantId') tenantId: string, @Req() req: any, @Body('title') title: string) {
+  async createSession(
+    @Param('tenantId') tenantId: string,
+    @Req() req: any,
+    @Body('title') title: string,
+  ) {
     const actualTenantId = tenantId === 'default' ? 'DEFAULT_TENANT' : tenantId;
-    return this.chatService.createSession(actualTenantId, title || 'Nuevo Chat Creativo');
+    return this.chatService.createSession(
+      actualTenantId,
+      title || 'Nuevo Chat Creativo',
+    );
   }
 
   @Get(':id/messages')
@@ -29,16 +46,14 @@ export class ChatController {
     @Param('tenantId') tenantId: string,
     @Param('id') id: string,
     @Body('text') text: string,
+    @Body('campaignId') campaignId?: string,
   ) {
     const actualTenantId = tenantId === 'default' ? 'DEFAULT_TENANT' : tenantId;
-    return this.chatService.postMessage(id, text, actualTenantId);
+    return this.chatService.postMessage(id, text, actualTenantId, campaignId);
   }
 
   @Put(':id')
-  async updateSession(
-    @Param('id') id: string,
-    @Body('title') title: string,
-  ) {
+  async updateSession(@Param('id') id: string, @Body('title') title: string) {
     return this.chatService.updateSessionTitle(id, title);
   }
 
@@ -50,8 +65,8 @@ export class ChatController {
   @Post(':id/approve')
   async approveCampaign(
     @Param('id') id: string,
-    @Body('characterId') characterId?: string,
+    @Body('brandId') brandId?: string,
   ) {
-    return this.chatService.approveCampaign(id, characterId);
+    return this.chatService.approveCampaign(id, brandId);
   }
 }

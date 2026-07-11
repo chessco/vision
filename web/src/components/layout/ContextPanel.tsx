@@ -45,15 +45,24 @@ export function ContextPanel() {
         { id: 'b1', name: 'AAA Abogados' },
         { id: 'b2', name: 'TechNova Solutions' }
       ];
-      const mockCampaigns = [
-        { id: '1', brandId: 'b1', name: 'Lanzamiento de Verano' },
-        { id: '2', brandId: 'b1', name: 'Q3 Brand Awareness' },
-        { id: '3', brandId: 'b2', name: 'Promoción Black Friday' }
-      ];
 
-      // Temporary mock brands implementation since we don't have a direct endpoint in Vision yet
-      setBrands(mockBrands);
-      if (!activeBrand) setActiveBrand(mockBrands[0]);
+
+      axios.get(`/api/tenants/${apiTenantId}/brands`)
+        .then(res => {
+          if (res.data && res.data.length > 0) {
+            setBrands(res.data);
+            if (!activeBrand) setActiveBrand(res.data[0]);
+          } else {
+            // Fallback to mock if API has no brands
+            setBrands(mockBrands);
+            if (!activeBrand) setActiveBrand(mockBrands[0]);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load brands', err);
+          setBrands(mockBrands);
+          if (!activeBrand) setActiveBrand(mockBrands[0]);
+        });
 
       axios.get(`/api/tenants/${apiTenantId}/assets`)
         .then(res => {
@@ -86,11 +95,9 @@ export function ContextPanel() {
       localStorage.removeItem('pitaya_vision_active_brand');
     }
     if (activeBrand && campaigns.length > 0) {
-      // Mock logic: filter by brandId if it exists, else just show all for now
       const filtered = campaigns.filter(c => !c.brandId || c.brandId === activeBrand.id);
       setFilteredCampaigns(filtered);
       
-      // Reset active campaign if it doesn't belong to the new brand
       if (!activeCampaign || (activeCampaign.brandId && activeCampaign.brandId !== activeBrand.id)) {
         setActiveCampaign(filtered.length > 0 ? filtered[0] : null);
       }
@@ -101,16 +108,67 @@ export function ContextPanel() {
   }, [activeBrand, campaigns]);
 
   useEffect(() => {
+    if (activeCampaign) {
+      localStorage.setItem('pitaya_vision_active_campaign', activeCampaign.id);
+      window.dispatchEvent(new CustomEvent('active-campaign-changed', { detail: activeCampaign.id }));
+    } else {
+      localStorage.removeItem('pitaya_vision_active_campaign');
+      window.dispatchEvent(new CustomEvent('active-campaign-changed', { detail: null }));
+    }
+  }, [activeCampaign]);
+
+  useEffect(() => {
     const handleCampaignCreated = (e: Event) => {
       const customEvent = e as CustomEvent;
       const newCampaign = customEvent.detail;
-      setCampaigns(prev => [...prev, newCampaign]);
-      setActiveCampaign(newCampaign);
+      
+      // Refetch full campaign list to ensure consistency and assets are loaded
+      axios.get(`/api/tenants/${apiTenantId}/campaigns`)
+        .then(res => {
+          setCampaigns(res.data || []);
+          setActiveCampaign(newCampaign);
+        })
+        .catch(err => console.error('Failed to reload campaigns', err));
+
+      // Refetch assets so the recent assets panel updates
+      axios.get(`/api/tenants/${apiTenantId}/assets`)
+        .then(res => {
+          if (res.data && res.data.length > 0) setAssets(res.data);
+        })
+        .catch(err => console.error('Failed to reload assets', err));
+    };
+
+    const handleBrandsUpdated = () => {
+      axios.get(`/api/tenants/${apiTenantId}/brands`)
+        .then(res => {
+          if (res.data && res.data.length > 0) {
+            setBrands(res.data);
+            const savedBrandId = localStorage.getItem('pitaya_vision_active_brand');
+            const found = res.data.find((b: any) => b.id === savedBrandId);
+            if (found) setActiveBrand(found);
+            else setActiveBrand(res.data[0]);
+          }
+        })
+        .catch(err => console.error('Failed to reload brands', err));
+    };
+
+    const handleAssetsUpdated = () => {
+      axios.get(`/api/tenants/${apiTenantId}/assets`)
+        .then(res => {
+          if (res.data && res.data.length > 0) setAssets(res.data);
+        })
+        .catch(err => console.error('Failed to reload assets', err));
     };
 
     window.addEventListener('campaign-created', handleCampaignCreated);
-    return () => window.removeEventListener('campaign-created', handleCampaignCreated);
-  }, []);
+    window.addEventListener('brands-updated', handleBrandsUpdated);
+    window.addEventListener('assets-updated', handleAssetsUpdated);
+    return () => {
+      window.removeEventListener('campaign-created', handleCampaignCreated);
+      window.removeEventListener('brands-updated', handleBrandsUpdated);
+      window.removeEventListener('assets-updated', handleAssetsUpdated);
+    };
+  }, [apiTenantId]);
 
   const handleSuggestionClick = (suggestion: string) => {
     if (location.pathname.endsWith('/chat')) {
@@ -165,6 +223,10 @@ export function ContextPanel() {
       </button>
     );
   }
+
+  const filteredAssets = activeCampaign
+    ? assets.filter(a => a.campaignId === activeCampaign.id)
+    : assets;
 
   return (
     <aside className={clsx(
@@ -248,8 +310,8 @@ export function ContextPanel() {
             <span className="text-[10px] font-labels font-semibold text-ink-muted uppercase tracking-wider">{t('Recent Assets')}</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
-            {assets.length > 0 ? (
-              assets.slice(0, 6).map((asset) => (
+            {filteredAssets.length > 0 ? (
+              filteredAssets.slice(0, 6).map((asset) => (
                 <div key={asset.id} className="aspect-square rounded-md bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden">
                   <img src={asset.url} alt={asset.title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" title={asset.title} />
                 </div>

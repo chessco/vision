@@ -40,6 +40,15 @@ export function CampaignsPage() {
 
   useEffect(() => {
     fetchCampaigns();
+
+    const handleCampaignCreated = () => {
+      fetchCampaigns();
+    };
+
+    window.addEventListener('campaign-created', handleCampaignCreated);
+    return () => {
+      window.removeEventListener('campaign-created', handleCampaignCreated);
+    };
   }, [tenantId]);
 
   const handleDelete = async (id: string) => {

@@ -132,7 +132,7 @@ const resources = {
       "Objective": "Objetivo",
       "Active Brand": "Marca Activa",
       "No campaigns": "Sin campañas",
-      "Audience Studio": "Estudio de Audiencia",
+
       "Understand your audience through AI-generated personas, emotion maps, and behavioral analysis.": "Entiende a tu audiencia mediante personas generadas por IA, mapas de emociones y análisis de comportamiento.",
       "Create Persona": "Crear Persona",
       "Creating...": "Creando...",

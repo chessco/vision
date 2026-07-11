@@ -1,16 +1,15 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
 
-const PITAYACORE_URL = process.env.PITAYACORE_URL || 'https://pitayacore-api.pitayacode.io';
+const PITAYACORE_URL =
+  process.env.PITAYACORE_URL || 'https://pitayacore-api.pitayacode.io';
 const PITAYACORE_API_KEY = process.env.PITAYACORE_API_KEY || '';
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(
-    public readonly db: DatabaseService,
-  ) {}
+  constructor(public readonly db: DatabaseService) {}
 
   async getSessions(tenantId: string) {
     let tenant = await this.db.mysql.tenant.findUnique({
@@ -24,15 +23,23 @@ export class ChatService {
           slug: tenantId,
         },
       });
-      
-      await this.db.mysql.brandConfig.create({
+    }
+
+    let brand = await this.db.mysql.brand.findFirst({
+      where: { tenantId },
+    });
+
+    if (!brand) {
+      brand = await this.db.mysql.brand.create({
         data: {
           tenantId: tenantId,
+          name: 'Marca Principal',
           primaryColor: '#8b5cf6',
           secondaryColor: '#06b6d4',
           fontHeadings: 'Outfit',
           fontBody: 'Inter',
-          styleGuidelines: 'Estilo fotográfico realista, iluminación natural, tomas de ángulo medio.',
+          styleGuidelines:
+            'Estilo fotográfico realista, iluminación natural, tomas de ángulo medio.',
           toneOfVoice: 'Seguro, empático, profesional',
         },
       });
@@ -67,16 +74,19 @@ export class ChatService {
   async createSession(tenantId: string, title: string) {
     let pitayaCoreId: string | undefined = undefined;
     try {
-      const res = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': PITAYACORE_API_KEY,
-          'x-user-role': 'ADMIN',
-          'x-tenant-id': tenantId,
+      const res = await fetch(
+        `${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': PITAYACORE_API_KEY,
+            'x-user-role': 'ADMIN',
+            'x-tenant-id': tenantId,
+          },
+          body: JSON.stringify({ title }),
         },
-        body: JSON.stringify({ title }),
-      });
+      );
       if (res.ok) {
         const pitayaSession = await res.json();
         if (pitayaSession && pitayaSession.id) {
@@ -112,9 +122,8 @@ export class ChatService {
       throw new NotFoundException('Title cannot be empty');
     }
 
-    const finalTitle = cleanTitle.length > 60
-      ? cleanTitle.substring(0, 57) + '...'
-      : cleanTitle;
+    const finalTitle =
+      cleanTitle.length > 60 ? cleanTitle.substring(0, 57) + '...' : cleanTitle;
 
     await this.db.mysql.chatSession.update({
       where: { id: sessionId },
@@ -142,9 +151,14 @@ export class ChatService {
     });
   }
 
-  async postMessage(sessionId: string, text: string, tenantId?: string) {
+  async postMessage(
+    sessionId: string,
+    text: string,
+    tenantId?: string,
+    campaignId?: string,
+  ) {
     let session;
-    
+
     if (sessionId === 'current') {
       if (!tenantId) {
         throw new NotFoundException('tenantId is required for current session');
@@ -176,9 +190,10 @@ export class ChatService {
 
     if (messageCount === 1 && session.title === 'Nuevo Chat Creativo') {
       const cleanTitle = text.replace(/[\r\n]+/g, ' ').trim();
-      const title = cleanTitle.length > 60
-        ? cleanTitle.substring(0, 57) + '...'
-        : cleanTitle || 'Nuevo Chat Creativo';
+      const title =
+        cleanTitle.length > 60
+          ? cleanTitle.substring(0, 57) + '...'
+          : cleanTitle || 'Nuevo Chat Creativo';
       await this.db.mysql.chatSession.update({
         where: { id: sessionId },
         data: { title },
@@ -189,7 +204,11 @@ export class ChatService {
       this.logger.log(`Calling PitayaCore remote for AI pipeline: ${text}`);
 
       // Call PitayaCore's chat endpoint which handles everything (strategy + image generation)
-      const pitayaResult = await this.callPitayaCoreChat(session.tenantId, sessionId, text);
+      const pitayaResult = await this.callPitayaCoreChat(
+        session.tenantId,
+        sessionId,
+        text,
+      );
 
       this.logger.log('Vision API saving message with:', {
         suggestedCopy: pitayaResult.suggestedCopy?.substring(0, 50) + '...',
@@ -197,12 +216,24 @@ export class ChatService {
         bannerUrl: pitayaResult.bannerUrl,
       });
 
-      const completedSteps = pitayaResult.steps?.length > 0 ? pitayaResult.steps : [
-        { label: 'Analizando solicitud con Director Creativo IA', status: 'done' },
-        { label: 'Generando estrategia completa de campaña', status: 'done' },
-        { label: 'Optimizando prompt visual para FLUX', status: 'done' },
-        { label: 'Renderizando banner de campaña con Fal.ai (FLUX)', status: 'done' },
-      ];
+      const completedSteps =
+        pitayaResult.steps?.length > 0
+          ? pitayaResult.steps
+          : [
+              {
+                label: 'Analizando solicitud con Director Creativo IA',
+                status: 'done',
+              },
+              {
+                label: 'Generando estrategia completa de campaña',
+                status: 'done',
+              },
+              { label: 'Optimizando prompt visual para FLUX', status: 'done' },
+              {
+                label: 'Renderizando banner de campaña con Fal.ai (FLUX)',
+                status: 'done',
+              },
+            ];
 
       const aiMessage = await this.db.mysql.chatMessage.create({
         data: {
@@ -219,6 +250,23 @@ export class ChatService {
         },
       });
 
+      // If a campaign is active and an image was generated, automatically add it as an asset
+      if (campaignId && pitayaResult.bannerUrl) {
+        await this.db.mysql.asset.create({
+          data: {
+            tenantId: session.tenantId,
+            campaignId: campaignId,
+            type: 'IMAGE',
+            title: pitayaResult.bannerTitle || 'Generado en Chat',
+            url: pitayaResult.bannerUrl,
+            dimensions: '1200 x 628 px',
+            sizeBytes: 1258291,
+            prompt: text,
+            status: 'READY',
+          },
+        });
+      }
+
       return {
         userMessage,
         aiMessage,
@@ -229,60 +277,77 @@ export class ChatService {
     }
   }
 
-  private async callPitayaCoreChat(tenantId: string, sessionId: string, message: string): Promise<any> {
+  private async callPitayaCoreChat(
+    tenantId: string,
+    sessionId: string,
+    message: string,
+  ): Promise<any> {
     // Send the message to PitayaCore's chat-sessions endpoint which handles strategy and image generation
-    let messageRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${sessionId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': PITAYACORE_API_KEY,
-        'x-user-role': 'ADMIN',
-        'x-tenant-id': tenantId,
+    let messageRes = await fetch(
+      `${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${sessionId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': PITAYACORE_API_KEY,
+          'x-user-role': 'ADMIN',
+          'x-tenant-id': tenantId,
+        },
+        body: JSON.stringify({ text: message }),
       },
-      body: JSON.stringify({ text: message }),
-    });
+    );
 
     if (!messageRes.ok) {
       if (messageRes.status === 404) {
-        this.logger.warn(`Session ${sessionId} not found in PitayaCore. Creating a temporary session...`);
-        const createRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': PITAYACORE_API_KEY,
-            'x-user-role': 'ADMIN',
-            'x-tenant-id': tenantId,
+        this.logger.warn(
+          `Session ${sessionId} not found in PitayaCore. Creating a temporary session...`,
+        );
+        const createRes = await fetch(
+          `${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': PITAYACORE_API_KEY,
+              'x-user-role': 'ADMIN',
+              'x-tenant-id': tenantId,
+            },
+            body: JSON.stringify({ title: 'Imported Session' }),
           },
-          body: JSON.stringify({ title: 'Imported Session' }),
-        });
+        );
         if (createRes.ok) {
           const newSession = await createRes.json();
           if (newSession && newSession.id) {
             // Retry with the new ID
-            messageRes = await fetch(`${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${newSession.id}/messages`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': PITAYACORE_API_KEY,
-                'x-user-role': 'ADMIN',
-                'x-tenant-id': tenantId,
+            messageRes = await fetch(
+              `${PITAYACORE_URL}/api/tenants/${tenantId}/chat-sessions/${newSession.id}/messages`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': PITAYACORE_API_KEY,
+                  'x-user-role': 'ADMIN',
+                  'x-tenant-id': tenantId,
+                },
+                body: JSON.stringify({ text: message }),
               },
-              body: JSON.stringify({ text: message }),
-            });
+            );
           }
         }
       }
 
       if (!messageRes.ok) {
         const errText = await messageRes.text().catch(() => '');
-        throw new Error(`PitayaCore message failed ${messageRes.status}: ${errText}`);
+        throw new Error(
+          `PitayaCore message failed ${messageRes.status}: ${errText}`,
+        );
       }
     }
 
     const result = await messageRes.json();
-    
+
     this.logger.log('PitayaCore response:', JSON.stringify(result, null, 2));
-    
+
     // Return the structure expected by postMessage (PitayaCore's response format)
     return {
       content: result.aiMessage?.text || 'Estrategia generada.',
@@ -296,17 +361,20 @@ export class ChatService {
     };
   }
 
-  private videoJobs = new Map<string, {
-    status: 'pending' | 'processing' | 'completed' | 'failed';
-    videoUrl?: string;
-    thumbnailUrl?: string;
-    duration?: number;
-    resolution?: string;
-    error?: string;
-    pitayaJobId?: string;
-    params: any;
-    createdAt: number;
-  }>();
+  private videoJobs = new Map<
+    string,
+    {
+      status: 'pending' | 'processing' | 'completed' | 'failed';
+      videoUrl?: string;
+      thumbnailUrl?: string;
+      duration?: number;
+      resolution?: string;
+      error?: string;
+      pitayaJobId?: string;
+      params: any;
+      createdAt: number;
+    }
+  >();
 
   async submitVideoJob(params: {
     tenantId: string;
@@ -327,7 +395,9 @@ export class ChatService {
       createdAt: Date.now(),
     });
 
-    this.logger.log(`Video job ${localJobId} created. Submitting to PitayaCore...`);
+    this.logger.log(
+      `Video job ${localJobId} created. Submitting to PitayaCore...`,
+    );
 
     const url = `${PITAYACORE_URL}/api/creative-suite/video/generate`;
     const headers: Record<string, string> = {
@@ -363,20 +433,37 @@ export class ChatService {
 
       if (res.ok) {
         const result = await res.json();
-        this.logger.log('PitayaCore video response:', JSON.stringify(result, null, 2));
+        this.logger.log(
+          'PitayaCore video response:',
+          JSON.stringify(result, null, 2),
+        );
 
         const videoUrl = this.extractVideoUrl(result);
-        const pitayaJobId = result.jobId || result.requestId || result.id || result.taskId || null;
-        const thumbnailUrl = result.thumbnailUrl || result.thumbnail || result.posterUrl || null;
+        const pitayaJobId =
+          result.jobId ||
+          result.requestId ||
+          result.id ||
+          result.taskId ||
+          null;
+        const thumbnailUrl =
+          result.thumbnailUrl || result.thumbnail || result.posterUrl || null;
 
         if (videoUrl) {
           this.logger.log(`Video URL received immediately: ${videoUrl}`);
-          await this.completeVideoJob(localJobId, videoUrl, thumbnailUrl, params, result);
+          await this.completeVideoJob(
+            localJobId,
+            videoUrl,
+            thumbnailUrl,
+            params,
+            result,
+          );
           return { jobId: localJobId, status: 'completed' };
         }
 
         if (pitayaJobId) {
-          this.logger.log(`Got PitayaCore job ID: ${pitayaJobId}. Starting background polling.`);
+          this.logger.log(
+            `Got PitayaCore job ID: ${pitayaJobId}. Starting background polling.`,
+          );
           const job = this.videoJobs.get(localJobId);
           if (job) {
             job.status = 'processing';
@@ -386,7 +473,10 @@ export class ChatService {
           return { jobId: localJobId, status: 'processing' };
         }
 
-        this.logger.error('PitayaCore returned no video URL and no job ID:', JSON.stringify(result));
+        this.logger.error(
+          'PitayaCore returned no video URL and no job ID:',
+          JSON.stringify(result),
+        );
         const job = this.videoJobs.get(localJobId);
         if (job) {
           job.status = 'failed';
@@ -399,7 +489,9 @@ export class ChatService {
       this.logger.warn(`PitayaCore returned ${res.status}: ${errText}`);
 
       if (res.status === 504 || res.status === 502 || res.status === 503) {
-        this.logger.log('Gateway timeout. Video is likely still processing on PitayaCore. Starting background retry.');
+        this.logger.log(
+          'Gateway timeout. Video is likely still processing on PitayaCore. Starting background retry.',
+        );
         const job = this.videoJobs.get(localJobId);
         if (job) job.status = 'processing';
         this.retryVideoInBackground(localJobId, url, headers, body, params);
@@ -414,7 +506,9 @@ export class ChatService {
       return { jobId: localJobId, status: 'failed' };
     } catch (error) {
       if (error.name === 'AbortError') {
-        this.logger.log('Request timed out (25s). Video is likely still processing. Starting background retry.');
+        this.logger.log(
+          'Request timed out (25s). Video is likely still processing. Starting background retry.',
+        );
         const job = this.videoJobs.get(localJobId);
         if (job) job.status = 'processing';
         this.retryVideoInBackground(localJobId, url, headers, body, params);
@@ -489,7 +583,7 @@ export class ChatService {
     const maxAttempts = 120;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const job = this.videoJobs.get(localJobId);
       if (!job) return;
@@ -499,16 +593,31 @@ export class ChatService {
         if (statusRes.ok) {
           const statusResult = await statusRes.json();
           const status = (statusResult.status || '').toLowerCase();
-          this.logger.log(`Video poll ${localJobId} attempt ${attempt}: status=${status}`);
+          this.logger.log(
+            `Video poll ${localJobId} attempt ${attempt}: status=${status}`,
+          );
 
-          if (status === 'completed' || status === 'done' || status === 'succeeded') {
+          if (
+            status === 'completed' ||
+            status === 'done' ||
+            status === 'succeeded'
+          ) {
             const videoUrl = this.extractVideoUrl(statusResult);
             if (videoUrl) {
-              await this.completeVideoJob(localJobId, videoUrl, statusResult.thumbnailUrl, params, statusResult);
+              await this.completeVideoJob(
+                localJobId,
+                videoUrl,
+                statusResult.thumbnailUrl,
+                params,
+                statusResult,
+              );
               this.logger.log(`Video job ${localJobId} completed: ${videoUrl}`);
               return;
             }
-            this.logger.error('Video completed but no URL in status response:', JSON.stringify(statusResult));
+            this.logger.error(
+              'Video completed but no URL in status response:',
+              JSON.stringify(statusResult),
+            );
             job.status = 'failed';
             job.error = 'Video completed but no URL returned';
             return;
@@ -516,12 +625,17 @@ export class ChatService {
 
           if (status === 'failed' || status === 'error') {
             job.status = 'failed';
-            job.error = statusResult.error || statusResult.message || 'Video generation failed';
+            job.error =
+              statusResult.error ||
+              statusResult.message ||
+              'Video generation failed';
             return;
           }
         }
       } catch (pollError) {
-        this.logger.warn(`Video poll ${localJobId} attempt ${attempt} error: ${pollError.message}`);
+        this.logger.warn(
+          `Video poll ${localJobId} attempt ${attempt} error: ${pollError.message}`,
+        );
       }
     }
 
@@ -543,12 +657,14 @@ export class ChatService {
     const delays = [30000, 60000, 120000, 180000, 300000];
 
     for (let retry = 0; retry < maxRetries; retry++) {
-      await new Promise(resolve => setTimeout(resolve, delays[retry]));
+      await new Promise((resolve) => setTimeout(resolve, delays[retry]));
 
       const job = this.videoJobs.get(localJobId);
       if (!job || job.status === 'completed' || job.status === 'failed') return;
 
-      this.logger.log(`Video retry ${localJobId} attempt ${retry + 1}/${maxRetries}`);
+      this.logger.log(
+        `Video retry ${localJobId} attempt ${retry + 1}/${maxRetries}`,
+      );
 
       try {
         const controller = new AbortController();
@@ -566,18 +682,36 @@ export class ChatService {
         if (res.ok) {
           const result = await res.json();
           const videoUrl = this.extractVideoUrl(result);
-          const pitayaJobId = result.jobId || result.requestId || result.id || result.taskId || null;
+          const pitayaJobId =
+            result.jobId ||
+            result.requestId ||
+            result.id ||
+            result.taskId ||
+            null;
 
           if (videoUrl) {
-            await this.completeVideoJob(localJobId, videoUrl, result.thumbnailUrl, params, result);
+            await this.completeVideoJob(
+              localJobId,
+              videoUrl,
+              result.thumbnailUrl,
+              params,
+              result,
+            );
             this.logger.log(`Video retry ${localJobId} succeeded: ${videoUrl}`);
             return;
           }
 
           if (pitayaJobId) {
-            this.logger.log(`Video retry got job ID: ${pitayaJobId}. Switching to polling.`);
+            this.logger.log(
+              `Video retry got job ID: ${pitayaJobId}. Switching to polling.`,
+            );
             job.pitayaJobId = pitayaJobId;
-            this.pollVideoInBackground(localJobId, pitayaJobId, params, headers);
+            this.pollVideoInBackground(
+              localJobId,
+              pitayaJobId,
+              params,
+              headers,
+            );
             return;
           }
         }
@@ -595,7 +729,8 @@ export class ChatService {
     const job = this.videoJobs.get(localJobId);
     if (job && job.status !== 'completed') {
       job.status = 'failed';
-      job.error = 'Video generation failed after multiple retries. The video may still be available in your Assets.';
+      job.error =
+        'Video generation failed after multiple retries. The video may still be available in your Assets.';
     }
   }
 
@@ -617,7 +752,11 @@ export class ChatService {
       result.video?.url,
     ];
     for (const candidate of candidates) {
-      if (candidate && typeof candidate === 'string' && candidate.startsWith('http')) {
+      if (
+        candidate &&
+        typeof candidate === 'string' &&
+        candidate.startsWith('http')
+      ) {
         return candidate;
       }
     }
@@ -634,7 +773,7 @@ export class ChatService {
     const maxAttempts = 60;
 
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       attempts++;
 
       try {
@@ -642,17 +781,35 @@ export class ChatService {
         if (statusRes.ok) {
           const statusResult = await statusRes.json();
           const status = (statusResult.status || '').toLowerCase();
-          this.logger.log(`Video poll attempt ${attempts}: status=${status}, keys=${Object.keys(statusResult)}`);
+          this.logger.log(
+            `Video poll attempt ${attempts}: status=${status}, keys=${Object.keys(statusResult)}`,
+          );
 
-          if (status === 'completed' || status === 'done' || status === 'succeeded') {
-            this.logger.log('Video completed. Full status response:', JSON.stringify(statusResult, null, 2));
+          if (
+            status === 'completed' ||
+            status === 'done' ||
+            status === 'succeeded'
+          ) {
+            this.logger.log(
+              'Video completed. Full status response:',
+              JSON.stringify(statusResult, null, 2),
+            );
 
             const videoUrl = this.extractVideoUrl(statusResult);
-            const thumbnailUrl = statusResult.thumbnailUrl || statusResult.thumbnail || statusResult.posterUrl || null;
+            const thumbnailUrl =
+              statusResult.thumbnailUrl ||
+              statusResult.thumbnail ||
+              statusResult.posterUrl ||
+              null;
 
             if (!videoUrl) {
-              this.logger.error('Video completed but no URL found in response:', JSON.stringify(statusResult));
-              throw new Error('Video generation completed but no video URL was returned');
+              this.logger.error(
+                'Video completed but no URL found in response:',
+                JSON.stringify(statusResult),
+              );
+              throw new Error(
+                'Video generation completed but no video URL was returned',
+              );
             }
 
             try {
@@ -669,32 +826,45 @@ export class ChatService {
                 },
               });
             } catch (assetError) {
-              this.logger.warn('Failed to store video asset in Vision DB:', assetError);
+              this.logger.warn(
+                'Failed to store video asset in Vision DB:',
+                assetError,
+              );
             }
 
             return {
               videoUrl,
               thumbnailUrl,
-              duration: statusResult.duration || statusResult.videoDuration || null,
+              duration:
+                statusResult.duration || statusResult.videoDuration || null,
               resolution: statusResult.resolution || params.resolution,
               status: 'completed',
             };
           } else if (status === 'failed' || status === 'error') {
-            throw new Error(statusResult.error || statusResult.message || 'Video generation failed');
+            throw new Error(
+              statusResult.error ||
+                statusResult.message ||
+                'Video generation failed',
+            );
           }
         }
       } catch (pollError) {
-        if (pollError.message.includes('Video generation failed') || pollError.message.includes('no video URL')) {
+        if (
+          pollError.message.includes('Video generation failed') ||
+          pollError.message.includes('no video URL')
+        ) {
           throw pollError;
         }
-        this.logger.warn(`Polling attempt ${attempts} failed: ${pollError.message}`);
+        this.logger.warn(
+          `Polling attempt ${attempts} failed: ${pollError.message}`,
+        );
       }
     }
 
     throw new Error('Video generation timed out after 5 minutes');
   }
 
-  async approveCampaign(sessionId: string, characterId?: string) {
+  async approveCampaign(sessionId: string, brandId?: string) {
     const session = await this.db.mysql.chatSession.findUnique({
       where: { id: sessionId },
     });
@@ -712,14 +882,33 @@ export class ChatService {
       throw new NotFoundException('No assets to approve in this session');
     }
 
-    const campaignName = session.title || 'Nueva Campaña de Redes';
+    let validBrandId = brandId || null;
+    if (validBrandId) {
+      const brand = await this.db.mysql.brand.findUnique({
+        where: { id: validBrandId },
+      });
+      if (!brand) {
+        // Fallback to first brand of tenant
+        const firstBrand = await this.db.mysql.brand.findFirst({
+          where: { tenantId: session.tenantId },
+        });
+        validBrandId = firstBrand ? firstBrand.id : null;
+      }
+    } else {
+      const firstBrand = await this.db.mysql.brand.findFirst({
+        where: { tenantId: session.tenantId },
+      });
+      validBrandId = firstBrand ? firstBrand.id : null;
+    }
+
+    const campaignName = lastAiMessage.bannerTitle || 'Campaña Creativa';
     const campaign = await this.db.mysql.campaign.create({
       data: {
         tenantId: session.tenantId,
         name: campaignName,
         objective: lastAiMessage.suggestedCopy || 'Generado vía Creative Chat',
         audience: 'Comunidad general y vecinos',
-        characterId: characterId || null,
+        brandId: validBrandId,
         channels: ['Facebook'],
         formats: ['Banner'],
       },

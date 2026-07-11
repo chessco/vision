@@ -5,33 +5,39 @@ import { DatabaseService } from '../../common/database/database.service';
 export class BrandService {
   constructor(private readonly db: DatabaseService) {}
 
-  async getBrandConfig(tenantId: string) {
-    let config = await this.db.mysql.brandConfig.findUnique({
+  async getBrands(tenantId: string) {
+    return this.db.mysql.brand.findMany({
       where: { tenantId },
+      orderBy: { updatedAt: 'desc' },
     });
-
-    if (!config) {
-      config = await this.db.mysql.brandConfig.create({
-        data: {
-          tenantId,
-          primaryColor: '#8b5cf6',
-          styleGuidelines: 'Estilo fotográfico realista, iluminación natural',
-          toneOfVoice: 'Profesional',
-        },
-      });
-    }
-
-    return config;
   }
 
-  async updateBrandConfig(tenantId: string, data: any) {
-    return this.db.mysql.brandConfig.upsert({
-      where: { tenantId },
-      update: data,
-      create: {
+  async getBrand(id: string) {
+    return this.db.mysql.brand.findUnique({
+      where: { id },
+    });
+  }
+
+  async createBrand(tenantId: string, data: any) {
+    return this.db.mysql.brand.create({
+      data: {
         tenantId,
+        name: data.name || 'Nueva Marca',
         ...data,
       },
+    });
+  }
+
+  async updateBrand(id: string, data: any) {
+    return this.db.mysql.brand.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async deleteBrand(id: string) {
+    return this.db.mysql.brand.delete({
+      where: { id },
     });
   }
 }

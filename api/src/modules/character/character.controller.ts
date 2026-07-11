@@ -11,20 +11,33 @@ export class CharacterController {
   }
 
   @Get(':id')
-  async getCharacter(@Param('tenantId') tenantId: string, @Param('id') id: string) {
+  async getCharacter(
+    @Param('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
     return this.characterService.getCharacterById(tenantId, id);
   }
 
   @Post()
   async createCharacter(
     @Param('tenantId') tenantId: string,
-    @Body() body: { name: string; description: string; industry: string; avatarUrl: string },
+    @Body()
+    body: {
+      name: string;
+      description: string;
+      industry: string;
+      avatarUrl: string;
+      brandId?: string;
+    },
   ) {
     return this.characterService.createCharacter(tenantId, body);
   }
 
   @Delete(':id')
-  async deleteCharacter(@Param('tenantId') tenantId: string, @Param('id') id: string) {
+  async deleteCharacter(
+    @Param('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
     return this.characterService.deleteCharacter(tenantId, id);
   }
 }

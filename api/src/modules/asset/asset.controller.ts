@@ -16,7 +16,10 @@ export class AssetController {
   }
 
   @Delete(':id')
-  async deleteAsset(@Param('tenantId') tenantId: string, @Param('id') id: string) {
+  async deleteAsset(
+    @Param('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
     return this.assetService.deleteAsset(tenantId, id);
   }
 }

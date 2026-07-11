@@ -19,6 +19,12 @@ import { CombinedAuthGuard } from '../../common/guards/combined-auth.guard';
     }),
   ],
   providers: [JwtStrategy, ApiKeyGuard, CombinedAuthGuard],
-  exports: [PassportModule, JwtModule, JwtStrategy, ApiKeyGuard, CombinedAuthGuard],
+  exports: [
+    PassportModule,
+    JwtModule,
+    JwtStrategy,
+    ApiKeyGuard,
+    CombinedAuthGuard,
+  ],
 })
 export class AuthModule {}

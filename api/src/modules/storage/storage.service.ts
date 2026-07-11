@@ -6,8 +6,10 @@ import { randomUUID } from 'crypto';
 export class StorageService {
   private readonly s3Client: S3Client;
   private readonly logger = new Logger(StorageService.name);
-  private readonly bucketName = process.env.R2_BUCKET_NAME || 'pitaya-visual-assets';
-  private readonly publicUrl = process.env.R2_PUBLIC_URL || 'https://assets.pitayacore.com';
+  private readonly bucketName =
+    process.env.R2_BUCKET_NAME || 'pitaya-visual-assets';
+  private readonly publicUrl =
+    process.env.R2_PUBLIC_URL || 'https://assets.pitayacore.com';
 
   constructor() {
     this.s3Client = new S3Client({
@@ -20,7 +22,11 @@ export class StorageService {
     });
   }
 
-  async uploadFile(buffer: Buffer, contentType: string, extension: string = 'png'): Promise<string> {
+  async uploadFile(
+    buffer: Buffer,
+    contentType: string,
+    extension: string = 'png',
+  ): Promise<string> {
     const filename = `${randomUUID()}.${extension}`;
     this.logger.log(`Uploading ${filename} to Cloudflare R2...`);
 
@@ -37,12 +43,15 @@ export class StorageService {
       });
 
       await this.s3Client.send(command);
-      
+
       const finalUrl = `${this.publicUrl}/${filename}`;
       this.logger.log(`Uploaded to: ${finalUrl}`);
       return finalUrl;
     } catch (error) {
-      this.logger.error('Error uploading file to R2. Using fallback URL.', error);
+      this.logger.error(
+        'Error uploading file to R2. Using fallback URL.',
+        error,
+      );
       // Fallback if R2 is not configured during dev
       return `http://localhost:3001/safe_streets_banner.png?fallback=${filename}`;
     }

@@ -16,7 +16,7 @@ model Tenant {
   characters     Character[]
   campaigns      Campaign[]
   assets         Asset[]
-  brandConfig    BrandConfig?
+  brands         Brand[]
   users          User[]
   chatSessions   ChatSession[]
 }
@@ -47,15 +47,17 @@ model Character {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   tenant       Tenant    @relation(fields: [tenantId], references: [id])
-  campaigns    Campaign[]
-  assets       Asset[]
+  brandId      String?
+  brand        Brand?    @relation(fields: [brandId], references: [id])
 
   @@index([tenantId])
+  @@index([brandId])
 }
 
-model BrandConfig {
+model Brand {
   id              String   @id @default(uuid())
-  tenantId        String   @unique
+  tenantId        String
+  name            String
   logoUrl         String?  @db.Text
   primaryColor    String?
   secondaryColor  String?
@@ -65,6 +67,11 @@ model BrandConfig {
   toneOfVoice     String?
   updatedAt       DateTime @updatedAt
   tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  characters      Character[]
+  campaigns       Campaign[]
+  assets          Asset[]
+
+  @@index([tenantId])
 }
 
 model Campaign {
@@ -73,24 +80,24 @@ model Campaign {
   name        String
   objective   String?    @db.Text
   audience    String?    @db.Text
-  characterId String?
+  brandId     String?
   channels    Json?
   formats     Json?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   tenant      Tenant     @relation(fields: [tenantId], references: [id])
-  character   Character? @relation(fields: [characterId], references: [id])
+  brand       Brand?     @relation(fields: [brandId], references: [id])
   assets      Asset[]
 
   @@index([tenantId])
-  @@index([characterId])
+  @@index([brandId])
 }
 
 model Asset {
   id          String     @id @default(uuid())
   tenantId    String
   campaignId  String?
-  characterId String?
+  brandId     String?
   type        String     // IMAGE, VIDEO, STORYBOARD, COPY
   title       String?
   url         String?    @db.Text
@@ -102,11 +109,11 @@ model Asset {
   updatedAt   DateTime   @updatedAt
   tenant      Tenant     @relation(fields: [tenantId], references: [id])
   campaign    Campaign?  @relation(fields: [campaignId], references: [id])
-  character   Character? @relation(fields: [characterId], references: [id])
+  brand       Brand?     @relation(fields: [brandId], references: [id])
 
   @@index([tenantId])
   @@index([campaignId])
-  @@index([characterId])
+  @@index([brandId])
 }
 
 

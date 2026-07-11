@@ -53,11 +53,13 @@ export class DashboardService {
     });
 
     // Brand Configured status
-    const brandConfig = await this.db.mysql.brandConfig.findUnique({
+    const brands = await this.db.mysql.brand.findMany({
       where: { tenantId },
+      take: 1,
     });
 
-    const brandConfigured = !!brandConfig && (!!brandConfig.logoUrl || !!brandConfig.primaryColor);
+    const brandConfigured =
+      brands.length > 0 && (!!brands[0].logoUrl || !!brands[0].primaryColor);
 
     return {
       stats: {

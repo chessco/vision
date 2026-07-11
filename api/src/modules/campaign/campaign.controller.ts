@@ -11,12 +11,18 @@ export class CampaignController {
   }
 
   @Get(':id')
-  async getCampaign(@Param('tenantId') tenantId: string, @Param('id') id: string) {
+  async getCampaign(
+    @Param('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
     return this.campaignService.getCampaignById(tenantId, id);
   }
 
   @Delete(':id')
-  async deleteCampaign(@Param('tenantId') tenantId: string, @Param('id') id: string) {
+  async deleteCampaign(
+    @Param('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
     return this.campaignService.deleteCampaign(tenantId, id);
   }
 }

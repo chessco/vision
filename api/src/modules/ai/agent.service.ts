@@ -7,35 +7,63 @@ export class AgentService {
   private readonly pitayacoreApiKey: string;
 
   constructor() {
-    this.pitayacoreUrl = process.env.PITAYACORE_URL || 'https://pitayacore-api.pitayacode.io';
+    this.pitayacoreUrl =
+      process.env.PITAYACORE_URL || 'https://pitayacore-api.pitayacode.io';
     this.pitayacoreApiKey = process.env.PITAYACORE_API_KEY || '';
   }
 
   async generateCreativeStrategy(
     prompt: string,
-    brandConfig?: { styleGuidelines?: string | null; toneOfVoice?: string | null; primaryColor?: string | null },
-    character?: { name?: string | null; description?: string | null; industry?: string | null } | null,
+    brandConfig?: {
+      styleGuidelines?: string | null;
+      toneOfVoice?: string | null;
+      primaryColor?: string | null;
+    },
+    character?: {
+      name?: string | null;
+      description?: string | null;
+      industry?: string | null;
+    } | null,
     tenantId?: string,
   ) {
-    this.logger.log(`Generating creative strategy via PitayaCore remote agent for: ${prompt}`);
+    this.logger.log(
+      `Generating creative strategy via PitayaCore remote agent for: ${prompt}`,
+    );
 
     try {
-      const result = await this.callRemoteAgent(prompt, brandConfig, character, tenantId);
+      const result = await this.callRemoteAgent(
+        prompt,
+        brandConfig,
+        character,
+        tenantId,
+      );
       return result;
     } catch (remoteError) {
-      this.logger.error('Remote agent failed. Using hardcoded fallback.', remoteError);
+      this.logger.error(
+        'Remote agent failed. Using hardcoded fallback.',
+        remoteError,
+      );
       return {
-        copy: "Conecta con lo que importa. Únete a la nueva era. ✨ #Innovación",
-        title: "Campaña Nueva Era",
-        imagePrompt: "A high quality cinematic shot of a professional environment, realistic, natural lighting, highly detailed, 8k resolution."
+        copy: 'Conecta con lo que importa. Únete a la nueva era. ✨ #Innovación',
+        title: 'Campaña Nueva Era',
+        imagePrompt:
+          'A high quality cinematic shot of a professional environment, realistic, natural lighting, highly detailed, 8k resolution.',
       };
     }
   }
 
   private async callRemoteAgent(
     prompt: string,
-    brandConfig?: { styleGuidelines?: string | null; toneOfVoice?: string | null; primaryColor?: string | null },
-    character?: { name?: string | null; description?: string | null; industry?: string | null } | null,
+    brandConfig?: {
+      styleGuidelines?: string | null;
+      toneOfVoice?: string | null;
+      primaryColor?: string | null;
+    },
+    character?: {
+      name?: string | null;
+      description?: string | null;
+      industry?: string | null;
+    } | null,
     tenantId?: string,
   ) {
     const url = `${this.pitayacoreUrl}/api/agents/creative-director/chat`;

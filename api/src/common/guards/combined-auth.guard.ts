@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiKeyGuard } from './api-key.guard';
@@ -35,13 +41,19 @@ export class CombinedAuthGuard implements CanActivate {
     if (xUserRole === 'ADMIN' || xUserRole === 'SYSTEM') {
       request.user = {
         role: xUserRole,
-        tenantId: request.headers['x-tenant-id'] || 'edd1ac37-5ff9-4e46-bc7f-fff3c414d718',
-        email: 'system@pitayacode.io'
+        tenantId:
+          request.headers['x-tenant-id'] ||
+          'edd1ac37-5ff9-4e46-bc7f-fff3c414d718',
+        email: 'system@pitayacode.io',
       };
-      console.log('BYPASS AUTH:', { url, role: xUserRole, tenantId: request.user.tenantId });
+      console.log('BYPASS AUTH:', {
+        url,
+        role: xUserRole,
+        tenantId: request.user.tenantId,
+      });
       return true;
     }
-    
+
     // 1. Try API Key authentication first
     try {
       const isApiKeyValid = await this.apiKeyGuard.canActivate(context);
@@ -56,7 +68,7 @@ export class CombinedAuthGuard implements CanActivate {
     // 2. Try JWT authentication
     try {
       const result = this.jwtGuard.canActivate(context);
-      
+
       let canActivateJwt: boolean;
       if (typeof result === 'boolean') {
         canActivateJwt = result;
@@ -71,11 +83,15 @@ export class CombinedAuthGuard implements CanActivate {
         throw new UnauthorizedException('Authentication failed');
       }
 
-      this.logger.debug(`Authenticated via JWT for ${url}. User: ${request.user ? request.user.email : 'MISSING'}`);
+      this.logger.debug(
+        `Authenticated via JWT for ${url}. User: ${request.user ? request.user.email : 'MISSING'}`,
+      );
       return true;
     } catch (error) {
       const authHeader = request.headers['authorization'];
-      this.logger.warn(`JWT validation failed for ${url}: ${error.message}. Auth Header: ${authHeader ? 'Present' : 'Missing'}`);
+      this.logger.warn(
+        `JWT validation failed for ${url}: ${error.message}. Auth Header: ${authHeader ? 'Present' : 'Missing'}`,
+      );
       throw error;
     }
   }

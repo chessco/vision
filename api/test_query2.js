@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/mysql-client'); const prisma = new PrismaClient(); prisma.brand.findMany().then(c => console.log(JSON.stringify(c, null, 2))).finally(() => prisma.$disconnect());
