@@ -1,8 +1,8 @@
 # Vision - Production Deploy Script (Hetzner)
-# Uso: .\deploy_vision_hetzner.ps1
+# Uso: .\scripts\deploy_api_hetzner.ps1
 
 $ErrorActionPreference = "Stop"
-Set-Location $PSScriptRoot
+Set-Location (Split-Path $PSScriptRoot -Parent)
 $SERVER_IP = "46.224.155.43"
 $SSH_KEY = "$env:USERPROFILE\.ssh\id_citaia"
 

@@ -3,13 +3,14 @@
 
 Write-Host "::: Iniciando Pitaya Visual Creative Suite en modo local :::" -ForegroundColor Cyan
 
-# Determinar el directorio base
-$BaseDir = $PSScriptRoot
-if (-not $BaseDir) {
-    $BaseDir = Get-Location
+# Determinar el directorio base (raíz de vision)
+$ScriptDir = $PSScriptRoot
+if (-not $ScriptDir) {
+    $ScriptDir = Get-Location
 }
+$BaseDir = Split-Path $ScriptDir -Parent
 
-# Asegurar que estamos en el directorio base correcto
+# Asegurar que estamos en el directorio base correcto (raíz del proyecto)
 Set-Location $BaseDir
 
 # 1. Crear red de Docker si no existe
