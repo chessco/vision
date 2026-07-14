@@ -27,7 +27,7 @@
 }
 
 .glass-panel-elevated {
-  @apply bg-paper/90 border border-border-subtle backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)];
+  @apply bg-paper bg-opacity-90 border border-border-subtle backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)];
 }
 
 /* ─── Glow Effects ───────────────────────────────────────────── */
