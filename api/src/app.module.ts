@@ -10,6 +10,7 @@ import { CharacterModule } from './modules/character/character.module';
 import { AssetModule } from './modules/asset/asset.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PitayaCoreModule } from './services/pitayacore/pitayacore.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AssetModule,
     CampaignModule,
     DashboardModule,
+    PitayaCoreModule,
   ],
   controllers: [AppController, HealthProxyController],
   providers: [AppService],

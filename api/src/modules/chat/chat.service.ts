@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../common/database/database.service';
+import { CreativeRuntimeClient } from '../../services/pitayacore';
 
 const PITAYACORE_URL =
   process.env.PITAYACORE_URL || 'https://pitayacore-api.pitayacode.io';
@@ -9,7 +10,10 @@ const PITAYACORE_API_KEY = process.env.PITAYACORE_API_KEY || '';
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(public readonly db: DatabaseService) {}
+  constructor(
+    public readonly db: DatabaseService,
+    private readonly creativeRuntimeClient: CreativeRuntimeClient,
+  ) {}
 
   async getSessions(tenantId: string) {
     let tenant = await this.db.mysql.tenant.findUnique({
@@ -203,12 +207,18 @@ export class ChatService {
     try {
       this.logger.log(`Calling PitayaCore remote for AI pipeline: ${text}`);
 
-      // Call PitayaCore's chat endpoint which handles everything (strategy + image generation)
-      const pitayaResult = await this.callPitayaCoreChat(
-        session.tenantId,
-        sessionId,
-        text,
+      // Call PitayaCore's chat endpoint via the CreativeRuntimeClient capabilities abstraction
+      const response = await this.creativeRuntimeClient.executeCapability(
+        'chat',
+        {
+          tenantId: session.tenantId,
+          sessionId,
+          campaignId: session.campaignId || undefined,
+        },
+        { text },
       );
+
+      const pitayaResult = response.data;
 
       this.logger.log('Vision API saving message with:', {
         suggestedCopy: pitayaResult.suggestedCopy?.substring(0, 50) + '...',
@@ -250,18 +260,30 @@ export class ChatService {
         },
       });
 
-      // If a campaign is active and an image was generated, automatically add it as an asset
-      if (campaignId && pitayaResult.bannerUrl) {
+      // Register the generated image as a reusable Asset (satisfying PR-007 asset criteria)
+      if (pitayaResult.bannerUrl) {
+        const assetMetadata = {
+          provider: pitayaResult.bannerStyle || 'FLUX Schnell • Fal.ai',
+          generationDate: new Date().toISOString(),
+          conversationId: sessionId,
+          campaignId: session.campaignId || null,
+          characterId: null,
+          tags: ['generated', 'chat', 'creative-runtime'],
+        };
+
         await this.db.mysql.asset.create({
           data: {
             tenantId: session.tenantId,
-            campaignId: campaignId,
+            campaignId: session.campaignId || null,
             type: 'IMAGE',
             title: pitayaResult.bannerTitle || 'Generado en Chat',
             url: pitayaResult.bannerUrl,
             dimensions: '1200 x 628 px',
             sizeBytes: 1258291,
-            prompt: text,
+            prompt: JSON.stringify({
+              userPrompt: text,
+              ...assetMetadata,
+            }),
             status: 'READY',
           },
         });
