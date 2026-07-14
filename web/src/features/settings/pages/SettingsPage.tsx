@@ -2,9 +2,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
   Settings, Wifi, RefreshCw, CheckCircle2,
   AlertCircle, Server, Database, Key, Globe, ChevronRight,
-  Sparkles, Lock, Activity, Pencil
+  Sparkles, Lock, Activity, Pencil, Palette
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useThemeEngine } from '../../../contexts/ThemeContext';
 
 interface ConnectionTest {
   status: 'idle' | 'testing' | 'ok' | 'error';
@@ -40,6 +41,15 @@ function saveActiveConnection(url: string) {
 }
 
 export function SettingsPage() {
+  const {
+    config: themeConfig,
+    activeSource,
+    syncStatus,
+    lastSyncTime,
+    refreshTheme,
+    useLocalTheme,
+  } = useThemeEngine();
+
   const [urls, setUrls] = useState(loadUrls);
   const [prodTest, setProdTest] = useState<ConnectionTest>({ status: 'idle' });
   const [localTest, setLocalTest] = useState<ConnectionTest>({ status: 'idle' });
@@ -300,6 +310,80 @@ export function SettingsPage() {
           onSave={() => { setUrls({ ...urls, local: tempLocalUrl }); setEditingLocal(false); }}
           onCancel={() => { setEditingLocal(false); setTempLocalUrl(urls.local); }}
         />
+      </section>
+
+      {/* Section: Appearance (Theme Engine) */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 mb-4">
+          <Palette className="w-4 h-4 text-primary" />
+          <h2 className="text-xs font-labels font-semibold text-ink-muted uppercase tracking-wider">
+            {t('Apariencia — Theme Engine')}
+          </h2>
+          <div className="flex-1 h-px bg-border-subtle" />
+        </div>
+
+        <div className="glass-panel rounded-xl p-5 border border-border-subtle space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-white">{t('Tema de Diseño Centralizado')}</h3>
+              <p className="text-xs text-ink-muted mt-0.5">
+                {t('Controla el aspecto visual a través de tokens remotos de PitayaCore.')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={refreshTheme}
+                disabled={syncStatus === 'syncing'}
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/20 rounded-md text-xs font-medium transition-all disabled:opacity-60"
+              >
+                <RefreshCw className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                {t('Sincronizar Tema')}
+              </button>
+              <button
+                onClick={useLocalTheme}
+                className="flex items-center gap-2 px-3 py-1.5 bg-paper hover:bg-white/5 text-ink-text border border-border-subtle rounded-md text-xs font-medium transition-all"
+              >
+                {t('Usar Tema Local')}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border-subtle/50">
+            <div>
+              <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Tema Activo')}</span>
+              <div className="text-sm font-semibold text-white mt-0.5">
+                {themeConfig?.activeTheme?.name || t('Tema por defecto')}
+              </div>
+            </div>
+            <div>
+              <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Fuente')}</span>
+              <div className="text-sm font-semibold text-white mt-0.5 flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${
+                  activeSource === 'pitayacore' ? 'bg-emerald-400' :
+                  activeSource === 'cached' ? 'bg-yellow-400' : 'bg-blue-400'
+                }`} />
+                {activeSource === 'pitayacore' && t('PitayaCore (En vivo)')}
+                {activeSource === 'cached' && t('Caché Local')}
+                {activeSource === 'local' && t('Tema Local (Fallback)')}
+              </div>
+            </div>
+            <div>
+              <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Estado de Sincronización')}</span>
+              <div className="text-sm font-semibold text-white mt-0.5">
+                {syncStatus === 'idle' && t('Inactivo')}
+                {syncStatus === 'syncing' && t('Sincronizando...')}
+                {syncStatus === 'ok' && <span className="text-emerald-400">{t('Sincronizado')}</span>}
+                {syncStatus === 'error' && <span className="text-red-400">{t('Error al conectar')}</span>}
+              </div>
+            </div>
+            <div>
+              <span className="text-[10px] text-ink-muted uppercase font-labels tracking-wider">{t('Última Sincronización')}</span>
+              <div className="text-sm font-semibold text-white mt-0.5 font-mono text-xs">
+                {lastSyncTime || t('Nunca')}
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Section: Environment Info */}

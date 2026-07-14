@@ -7,26 +7,26 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0b0a0f',
-        paper: '#13111c',
+        background: 'var(--background, #0b0a0f)',
+        paper: 'var(--surface, #13111c)',
         primary: {
-          DEFAULT: '#8b5cf6',
-          container: '#1e1b29',
+          DEFAULT: 'var(--primary, #8b5cf6)',
+          container: 'var(--primary-container, #1e1b29)',
         },
         secondary: {
-          DEFAULT: '#06b6d4',
-          container: '#083344',
+          DEFAULT: 'var(--secondary, #06b6d4)',
+          container: 'var(--secondary-container, #083344)',
         },
         accent: {
-          DEFAULT: '#f59e0b',
-          container: '#451a03',
+          DEFAULT: 'var(--accent, #f59e0b)',
+          container: 'var(--accent-container, #451a03)',
         },
         border: {
-          subtle: '#262235',
+          subtle: 'var(--border, #262235)',
         },
         ink: {
-          text: '#f3f4f6',
-          muted: '#9ca3af',
+          text: 'var(--text-primary, #f3f4f6)',
+          muted: 'var(--text-secondary, #9ca3af)',
         }
       },
       fontFamily: {
@@ -36,10 +36,10 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {
-        DEFAULT: '0.375rem',
-        md: '0.5rem',
-        lg: '0.75rem',
-        xl: '1rem',
+        DEFAULT: 'var(--radius, 0.375rem)',
+        md: 'calc(var(--radius, 0.375rem) * 1.33)',
+        lg: 'calc(var(--radius, 0.375rem) * 2)',
+        xl: 'calc(var(--radius, 0.375rem) * 2.66)',
       }
     },
   },
